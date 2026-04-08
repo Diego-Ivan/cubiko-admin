@@ -6,6 +6,7 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
 import reservasRoutes from './routes/reservas';
+import morganMiddleware from './middleware/morgan';
 
 const app: Express = express();
 
@@ -13,6 +14,7 @@ const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(morganMiddleware);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
