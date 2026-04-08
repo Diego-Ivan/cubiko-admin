@@ -1,0 +1,16 @@
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=password
+DB_NAME=biblioteca
+
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+JWT_EXPIRY=24h
+
+# Server Configuration
+NODE_ENV=development
+PORT=3001
+
+# Password Configuration
+PASSWORD_MIN_LENGTH=10
