@@ -37,6 +37,11 @@ export const roomAvailabilitySchema = z.object({
   capacidad: z.number().int().positive().optional()
 });
 
+// Cancelar reserva
+export const cancelarReservaSchema = z.object({
+  reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
+});
+
 // Request
 export async function validateRequest<T>(schema: z.ZodSchema, data: unknown): Promise<T> {
   try {
