@@ -5,7 +5,8 @@ export const passwordSchema = z
   .string()
   .min(10, 'Password must be at least 10 characters long')
   .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain at least one special character');
+  .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character');
+  
 
 // Validación de registro de estudiante y personal
 // TODO: Me gustaría que la validación pudiera usar los valores de los enums en vez de reescribirlos
