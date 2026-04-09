@@ -151,3 +151,20 @@ El token `access_token` podrá ser utilizado por los usuarios de la API para rea
       - `maxPersonas` (`int`): Número máximo de personas que puede tener la sala
       - `maxPersonas` (`int`): Número mínimo de personas que puede tener la sala
   - `401`: Operación no autorizada. Vea el mensaje del error.
+
+## Reservaciones
+
+Estos endpoints **solamente permiten gestión de reservaciones como estudiantes**. Consule el endpoint adecuado si quiere cancelar reservaciones como administrador.
+
+### Cancelar Reservación
+
+- **Endpoint**: `/api/reservas/{id}/cancel`
+- **Tipo de Request**: `PATCH`
+- **Parámetros**: Ninguno
+- **Cuerpo de la Request**: Ninguno
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `401`: Operación no autorizada. Vea el mensaje del error.

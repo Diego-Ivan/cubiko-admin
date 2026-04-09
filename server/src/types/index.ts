@@ -68,6 +68,7 @@ export interface Reserva {
   id: number;
   estudiante_id: number;
   sala_numero: number | null;
+  sala_ubicacion: string;
   fechaInicio: Date;
   horaInicio: string; // HH:MM format
   fechaFin: Date;
@@ -121,6 +122,10 @@ export interface RoomAvailabilityQuery {
 export interface ExtensionRequestBody {
   reserva_id: number;
   extensionHoras: number;
+}
+
+export interface CancelarReservaRequest {
+  reservaId: number;
 }
 
 

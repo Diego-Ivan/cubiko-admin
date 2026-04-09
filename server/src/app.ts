@@ -5,6 +5,7 @@ import { errorHandler } from './middleware/errorHandler';
 // Import routes
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
+import reservasRoutes from './routes/reservas';
 
 const app: Express = express();
 
@@ -24,6 +25,7 @@ app.get('/health', (_req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/reservas', reservasRoutes)
 
 // 404 handler
 app.use((_req, res) => {
