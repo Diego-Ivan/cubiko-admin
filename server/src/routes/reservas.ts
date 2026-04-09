@@ -7,6 +7,6 @@ const router = Router();
 // All room endpoints require authentication
 router.use(authenticate);
 
-router.post('/:reservaId/cancel', cancelarReserva)
+router.patch('/:reservaId/cancel', cancelarReserva)
 
 export default router;

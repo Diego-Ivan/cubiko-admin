@@ -159,7 +159,7 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
 ### Cancelar Reservación
 
 - **Endpoint**: `/api/reservas/{id}/cancel`
-- **Tipo de Request**: `POST`
+- **Tipo de Request**: `PATCH`
 - **Parámetros**: Ninguno
 - **Cuerpo de la Request**: Ninguno
 - **Cabeceras**:
