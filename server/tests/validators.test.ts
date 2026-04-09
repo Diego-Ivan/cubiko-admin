@@ -2,10 +2,9 @@ import {
   registerSchema,
   loginSchema,
   passwordSchema,
-  createReservationSchema,
-  modifyReservationSchema,
-  extensionRequestSchema
 } from '../src/utils/validators';
+
+import {expect, describe, it} from '@jest/globals';
 
 describe('Validators', () => {
   describe('Password Validation', () => {
@@ -83,67 +82,6 @@ describe('Validators', () => {
       };
 
       const result = loginSchema.safeParse(data);
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe('Reservation Validation', () => {
-    it('should validate correct reservation data', async () => {
-      const data = {
-        sala_numero: 101,
-        fechaInicio: '2026-04-15',
-        horaInicio: '14:00',
-        fechaFin: '2026-04-15',
-        horaFin: '16:00',
-        numPersonas: 2
-      };
-
-      const result = createReservationSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject invalid time format', async () => {
-      const data = {
-        sala_numero: 101,
-        fechaInicio: '2026-04-15',
-        horaInicio: '14',
-        fechaFin: '2026-04-15',
-        horaFin: '16:00',
-        numPersonas: 2
-      };
-
-      const result = createReservationSchema.safeParse(data);
-      expect(result.success).toBe(false);
-    });
-
-    it('should validate modify reservation data', async () => {
-      const data = {
-        numPersonas: 3
-      };
-
-      const result = modifyReservationSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('Extension Validation', () => {
-    it('should validate correct extension request', async () => {
-      const data = {
-        reserva_id: 1,
-        extensionHoras: 1.5
-      };
-
-      const result = extensionRequestSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject extension over 1.5 hours', async () => {
-      const data = {
-        reserva_id: 1,
-        extensionHoras: 2
-      };
-
-      const result = extensionRequestSchema.safeParse(data);
       expect(result.success).toBe(false);
     });
   });

@@ -1,5 +1,7 @@
 import { hashPassword, verifyPassword, generateToken, verifyToken } from '../src/services/authService';
 
+import {expect, describe, it} from '@jest/globals';
+
 describe('Auth Service', () => {
   describe('Password Management', () => {
     it('should hash password', async () => {
