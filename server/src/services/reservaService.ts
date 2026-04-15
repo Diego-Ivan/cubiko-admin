@@ -1,21 +1,28 @@
+import { PoolConnection } from 'mysql2/promise';
 import pool from '../config/database';
-import { Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError } from '../types';
+import { Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
+import QRCode  from 'qrcode';
+
+async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
+    const [resultado] = await connection.query(
+        'SELECT * FROM Reserva WHERE id = ?',
+        [reservaId]
+    );
+
+    const reservaciones = resultado as any[];
+    if (reservaciones.length == 0) {
+        throw new NotFoundError(`La reservación con id ${reservaId} no fue encontrada`);
+    }
+
+    return reservaciones[0] as Reserva;
+}
 
 export async function cancelarReservaConId(reservaId: number, estudianteId: number) {
     const connection = await pool.getConnection();
 
     try {
-        const [resultado] = await connection.query(
-            'SELECT * FROM Reserva WHERE id = ?',
-            [reservaId]
-        );
+        const reservacion = await obtenerReservaConId(connection, reservaId);
 
-        const reservaciones = resultado as any[];
-        if (reservaciones.length == 0) {
-            throw new NotFoundError(`La reservación con id ${reservaId} no fue encontrada`);
-        }
-
-        const reservacion = reservaciones[0] as Reserva;
         if (reservacion.estudiante_id != estudianteId) {
             throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
         }
@@ -33,3 +40,24 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
         connection.release()
     }
 }
+
+export async function generarQrConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario) {
+    const connection = await pool.getConnection();
+
+    const reservacion = await obtenerReservaConId(connection, reservaId);
+
+    if (reservacion.status !== ReservaStatus.ACTIVA) {
+        connection.release();
+        throw new ValidationError(`No se puede generar un QR para la reserva ${reservaId}. Se hizo la solicitud para una reserva ${reservacion.status}`)
+    }
+
+    if (estudianteId !== reservacion.estudiante_id && tipoUsuario !== 'personal') {
+        connection.release();
+        throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+    }
+
+    const qrCode = QRCode.create(`${reservaId}`);
+    connection.release();
+    return qrCode;
+    }
+    
