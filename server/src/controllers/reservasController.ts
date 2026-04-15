@@ -78,7 +78,7 @@ export async function generarQrCode(req: Request, res: Response) {
 
     const qr = await generarQrConId(reservaId, userId, tipoUsuario);
     res.status(200).json({
-      success: false,
+      success: true,
       obj: qr,
     })
   }

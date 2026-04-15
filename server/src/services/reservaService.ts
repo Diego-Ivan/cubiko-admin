@@ -3,18 +3,21 @@ import pool from '../config/database';
 import { Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
 import QRCode  from 'qrcode';
 
+// TODO: Optimizar a una cache más eficiente
+const qrCache = new Map<number, string>();
+
 async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
     const [resultado] = await connection.query(
         'SELECT * FROM Reserva WHERE id = ?',
         [reservaId]
     );
 
-    const reservaciones = resultado as any[];
+    const reservaciones = resultado as Reserva[];
     if (reservaciones.length == 0) {
         throw new NotFoundError(`La reservación con id ${reservaId} no fue encontrada`);
     }
 
-    return reservaciones[0] as Reserva;
+    return reservaciones[0];
 }
 
 export async function cancelarReservaConId(reservaId: number, estudianteId: number) {
@@ -41,7 +44,7 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
     }
 }
 
-export async function generarQrConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario) {
+export async function generarQrConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario): Promise<string> {
     const connection = await pool.getConnection();
 
     const reservacion = await obtenerReservaConId(connection, reservaId);
@@ -56,8 +59,24 @@ export async function generarQrConId(reservaId: number, estudianteId: number, ti
         throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
     }
 
-    const qrCode = QRCode.create(`${reservaId}`);
+    const cachedQr = qrCache.get(reservaId);
+
+    if (cachedQr) {
+        return cachedQr;
+    }
+
+    const qrCode = await QRCode.toDataURL(`${reservaId}`, {
+        errorCorrectionLevel: "H",
+        type: 'image/png',
+        margin: 1,
+        scale: 10,
+        color: {
+            dark: "#134734",
+            light: "#FFFFFF"
+        }
+    });
+    qrCache.set(reservaId, qrCode);
     connection.release();
     return qrCode;
-    }
+}
     
