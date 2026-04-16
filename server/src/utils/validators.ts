@@ -42,6 +42,11 @@ export const cancelarReservaSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 
+// Extender reserva
+export const extenderReservaBodySchema = z.object({
+  extensionHoras: z.number().positive('Extension must be a positive number').optional().default(1)
+});
+
 // Request
 export async function validateRequest<T>(schema: z.ZodSchema, data: unknown): Promise<T> {
   try {

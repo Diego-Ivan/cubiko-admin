@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
-import { validateRequest, cancelarReservaSchema } from '../utils/validators';
-import { cancelarReservaConId } from '../services/reservaService';
+import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema } from '../utils/validators';
+import { cancelarReservaConId, solicitarExtension, resolverExtension } from '../services/reservaService';
+import { notifyAdminsNewExtension, notifyExtensionResolved } from '../socket/socketHandler';
+import { z } from 'zod';
 import { ApiError, CancelarReservaRequest } from '../types';
 
 export async function crearReserva(_req: Request, _res: Response) {}
@@ -55,3 +57,106 @@ export async function cancelarReserva(req: Request, res: Response) {
 
 /* Solamente si el usuario es un bibliotecario o administrador */
 export async function listReservas(_req: Request, _res: Response) {}
+
+export async function extenderReserva(req: Request, res: Response) {
+  try {
+    const validatedParams = await validateRequest<CancelarReservaRequest>(
+      cancelarReservaSchema,
+      { reservaId: req.params.reservaId }
+    );
+
+    const validatedBody = await validateRequest<{extensionHoras: number}>(
+      extenderReservaBodySchema,
+      req.body
+    );
+
+    const reservaId = Number(validatedParams.reservaId);
+    const userId = req.user?.id;
+    const tipo = req.user?.tipo;
+
+    if (!userId) {
+      res.status(401).json({ success: false, error: 'Unauthorized' });
+      return;
+    }
+
+    if (!tipo || tipo !== 'estudiante') {
+        res.status(400).json({
+            success: false,
+            error: 'Esta ruta solo permite extender reservas para estudiantes.'
+        });
+        return;
+    }
+
+    const requestData = await solicitarExtension(reservaId, userId, validatedBody.extensionHoras);
+
+    // Notify admins
+    notifyAdminsNewExtension(requestData);
+
+    res.status(200).json({
+      success: true,
+      message: 'La solicitud de extensión ha sido enviada con éxito',
+      data: requestData
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    } else {
+        throw error;
+    }
+  }
+}
+
+export const resolverExtensionSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED'])
+});
+
+export async function adminResolverExtension(req: Request, res: Response) {
+  try {
+    const requestId = Number(req.params.requestId);
+    
+    if (isNaN(requestId) || requestId <= 0) {
+      res.status(400).json({ success: false, error: 'Invalid Request ID' });
+      return;
+    }
+
+    const tipo = req.user?.tipo;
+    if (!tipo || tipo !== 'personal') {
+        res.status(403).json({
+            success: false,
+            error: 'Solo el personal puede resolver solicitudes de extensión.'
+        });
+        return;
+    }
+
+    const validatedBody = await validateRequest<{status: 'APPROVED' | 'REJECTED'}>(
+      resolverExtensionSchema,
+      req.body
+    );
+
+    const requestData = await resolverExtension(requestId, validatedBody.status);
+
+    // Notify student globally (each client can filter by 'estudianteId')
+    // We typically want the original student's userId so we have to get it. 
+    // Usually it can be stored in the request or queried. But the notification event broadcasts it.
+    notifyExtensionResolved(requestId, requestData);
+
+    res.status(200).json({
+      success: true,
+      message: `La solicitud fue ${validatedBody.status} exitosamente.`,
+      data: requestData
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    } else {
+        throw error;
+    }
+  }
+}
+
