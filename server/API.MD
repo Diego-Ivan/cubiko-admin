@@ -25,7 +25,7 @@ El token `access_token` podrá ser utilizado por los usuarios de la API para rea
 - **Tipo de Request**: `POST`
 - **Parámetros**: Ninguno
 - **Cuerpo de la Request**: Documento `JSON`:
-  - `name`: `string`
+  - `nombre`: `string`
   - `email`: `string`
   - `password`: `string`
   - `status`?: `"Activo" | "Inactivo" | "Egresado"` (default: `"Activo"`)
@@ -61,7 +61,7 @@ El token `access_token` podrá ser utilizado por los usuarios de la API para rea
 - **Tipo de Request**: `POST`
 - **Parámetros**: Ninguno
 - **Cuerpo de la Request**: Documento `JSON`:
-  - `name`: `string`
+  - `nombre`: `string`
   - `email`: `string`
   - `password`: `string`
   - `rol`?: `"Bibliotecario" | "Admin"`
