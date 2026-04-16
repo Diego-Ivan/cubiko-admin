@@ -4,7 +4,12 @@ import { Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError,
 import QRCode  from 'qrcode';
 
 // TODO: Optimizar a una cache más eficiente
-const qrCache = new Map<number, string>();
+const qrCache = new Map<string, string>();
+
+export enum TipoQr {
+    Invitacion = "invitacion",
+    Acceso = "acceso"
+}
 
 async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
     const [resultado] = await connection.query(
@@ -44,7 +49,26 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
     }
 }
 
-export async function generarQrConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario): Promise<string> {
+async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
+    const formatoQr = `${tipo};${reservaId}`;
+
+    const cachedQr = qrCache.get(formatoQr);
+    if (cachedQr) {
+        return cachedQr;
+    }
+
+    const qrCode = await QRCode.toDataURL(formatoQr, {
+        errorCorrectionLevel: "H",
+        type: 'image/png',
+        margin: 1,
+        scale: 10
+    });
+    qrCache.set(formatoQr, qrCode);
+
+    return qrCode;
+}
+
+export async function generarQrCodeConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario, tipoQr: TipoQr): Promise<string> {
     const connection = await pool.getConnection();
 
     const reservacion = await obtenerReservaConId(connection, reservaId);
@@ -59,24 +83,8 @@ export async function generarQrConId(reservaId: number, estudianteId: number, ti
         throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
     }
 
-    const cachedQr = qrCache.get(reservaId);
-
-    if (cachedQr) {
-        return cachedQr;
-    }
-
-    const qrCode = await QRCode.toDataURL(`${reservaId}`, {
-        errorCorrectionLevel: "H",
-        type: 'image/png',
-        margin: 1,
-        scale: 10,
-        color: {
-            dark: "#134734",
-            light: "#FFFFFF"
-        }
-    });
-    qrCache.set(reservaId, qrCode);
+    const qrCode = crearQr(tipoQr, reservaId);
+    
     connection.release();
     return qrCode;
 }
-    
