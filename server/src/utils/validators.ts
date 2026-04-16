@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ValidationError } from '../types';
 
 // Regex para validar contraseña
 export const passwordSchema = z
@@ -37,6 +38,22 @@ export const roomAvailabilitySchema = z.object({
   capacidad: z.number().int().positive().optional()
 });
 
+export const crearReservaSchema = z.object({
+  salaNumero: z.number({ invalid_type_error: 'salaNumero must be a number' }).int().positive(),
+  salaUbicacion: z.string().min(1, 'salaUbicacion is required'),
+  fechaInicio: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid fechaInicio'),
+  horaInicio: z.string().regex(/^\d{2}:\d{2}$/, 'horaInicio must be HH:MM format'),
+  fechaFin: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid fechaFin'),
+  horaFin: z.string().regex(/^\d{2}:\d{2}$/, 'horaFin must be HH:MM format'),
+  numPersonas: z.number().int().positive().optional()
+}).refine((data) => {
+  const start = new Date(`${data.fechaInicio}T${data.horaInicio}:00`);
+  const end = new Date(`${data.fechaFin}T${data.horaFin}:00`);
+  return end > start;
+}, {
+  message: 'fechaFin/horaFin debe ser posterior a fechaInicio/horaInicio'
+});
+
 // Cancelar reserva
 export const cancelarReservaSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
@@ -57,7 +74,7 @@ export async function validateRequest<T>(schema: z.ZodSchema, data: unknown): Pr
         const path = e.path.length > 0 ? e.path.join('.') : 'root';
         return `${path}: ${e.message}`;
       }).join('; ');
-      throw new Error(fieldErrors);
+      throw new ValidationError(fieldErrors);
     }
     throw error;
   }

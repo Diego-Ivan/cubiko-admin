@@ -107,7 +107,7 @@ export async function loginStudent(req: Request, res: Response): Promise<void> {
         email: student.email
       });
 
-      res.status(200).json({
+      res.status(201).json({
         success: true,
         data: token,
         message: 'Login successful'

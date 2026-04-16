@@ -119,6 +119,16 @@ export interface RoomAvailabilityQuery {
   capacidad?: number;
 }
 
+export interface CrearReservaRequest {
+  salaNumero: number;
+  salaUbicacion: string;
+  fechaInicio: string; // YYYY-MM-DD
+  horaInicio: string; // HH:MM
+  fechaFin: string; // YYYY-MM-DD
+  horaFin: string; // HH:MM
+  numPersonas?: number;
+}
+
 export interface ExtensionRequestBody {
   reserva_id: number;
   extensionHoras: number;
