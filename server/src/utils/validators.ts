@@ -61,7 +61,7 @@ export const cancelarReservaSchema = z.object({
 
 // Extender reserva
 export const extenderReservaBodySchema = z.object({
-  extensionHoras: z.number().positive('Extension must be a positive number').optional().default(1)
+  extensionHoras: z.number().int('Extension must be a whole number of hours').positive('Extension must be a positive number').optional().default(1)
 });
 
 // Request
