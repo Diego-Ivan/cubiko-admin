@@ -1,11 +1,51 @@
 import { Request, Response } from 'express';
-import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema, extenderReservaParamSchema } from '../utils/validators';
-import { cancelarReservaConId, solicitarExtension, resolverExtension } from '../services/reservaService';
+import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema, extenderReservaParamSchema, crearReservaSchema } from '../utils/validators';
 import { notifyAdminsNewExtension, notifyExtensionResolved } from '../socket/socketHandler';
 import { z } from 'zod';
-import { ApiError, CancelarReservaRequest, ExtenderReservaRequest } from '../types';
+import { cancelarReservaConId, crearReservaConTransaccion, solicitarExtension, resolverExtension } from '../services/reservaService';
+import { ApiError, CancelarReservaRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ExtenderReservaRequest } from '../types';
 
-export async function crearReserva(_req: Request, _res: Response) {}
+
+export async function crearReserva(req: Request, res: Response) {
+  try {
+    const validatedBody = await validateRequest<CrearReservaRequest>(crearReservaSchema, req.body); /*valida los datos*/
+    const userId = req.user?.id; /*datos usuario*/
+    const tipo = req.user?.tipo;
+
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    if (!tipo || tipo !== 'estudiante') { /*solo estudiantes pueden crear reservas*/
+      throw new ForbiddenError('Solo los estudiantes pueden crear reservas');
+    }
+
+    const reservaId = await crearReservaConTransaccion({
+      ...validatedBody, /*copia los datos validados*/
+      estudianteId: userId /*agrega el id del estudiante a los datos para crear la reserva*/
+    });
+
+    res.status(201).json({ /*respuesta exitosa con la reserva creada*/
+      success: true,
+      message: 'Reservación creada con éxito',
+      data: {
+        reservaId
+      }
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message /*respuesta de error con el mensaje del error*/
+      });
+    } else {
+      res.status(500).json({ /*error genérico */
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+}
 
 export async function cancelarReserva(req: Request, res: Response) {
   try {
@@ -29,11 +69,11 @@ export async function cancelarReserva(req: Request, res: Response) {
     }
 
     if (!tipo || tipo !== 'estudiante') {
-        res.status(400).json({
-            success: false,
-            error: 'Esta ruta solo permite cancelaciones para estudiantes. Utilice la ruta adecuada para cancelaciones administrativas.'
-        });
-        return;
+      res.status(400).json({
+        success: false,
+        error: 'Esta ruta solo permite cancelaciones para estudiantes. Utilice la ruta adecuada para cancelaciones administrativas.'
+      });
+      return;
     }
 
     // Call the service to cancel the reservation
@@ -45,18 +85,18 @@ export async function cancelarReserva(req: Request, res: Response) {
     });
   } catch (error) {
     if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        })
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      })
     } else {
-        throw Error;
+      throw error;
     }
   }
 }
 
 /* Solamente si el usuario es un bibliotecario o administrador */
-export async function listReservas(_req: Request, _res: Response) {}
+export async function listReservas(_req: Request, _res: Response) { }
 
 export async function extenderReserva(req: Request, res: Response) {
   try {
@@ -65,7 +105,7 @@ export async function extenderReserva(req: Request, res: Response) {
       { reservaId: req.params.reservaId }
     );
 
-    const validatedBody = await validateRequest<{extensionHoras: number}>(
+    const validatedBody = await validateRequest<{ extensionHoras: number }>(
       extenderReservaBodySchema,
       req.body
     );
@@ -80,11 +120,11 @@ export async function extenderReserva(req: Request, res: Response) {
     }
 
     if (!tipo || tipo !== 'estudiante') {
-        res.status(400).json({
-            success: false,
-            error: 'Esta ruta solo permite extender reservas para estudiantes.'
-        });
-        return;
+      res.status(400).json({
+        success: false,
+        error: 'Esta ruta solo permite extender reservas para estudiantes.'
+      });
+      return;
     }
 
     const requestData = await solicitarExtension(reservaId, userId, validatedBody.extensionHoras);
@@ -99,12 +139,12 @@ export async function extenderReserva(req: Request, res: Response) {
     });
   } catch (error) {
     if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     } else {
-        throw error;
+      throw error;
     }
   }
 }
@@ -116,7 +156,7 @@ export const resolverExtensionSchema = z.object({
 export async function adminResolverExtension(req: Request, res: Response) {
   try {
     const requestId = Number(req.params.requestId);
-    
+
     if (isNaN(requestId) || requestId <= 0) {
       res.status(400).json({ success: false, error: 'Invalid Request ID' });
       return;
@@ -124,14 +164,14 @@ export async function adminResolverExtension(req: Request, res: Response) {
 
     const tipo = req.user?.tipo;
     if (!tipo || tipo !== 'personal') {
-        res.status(403).json({
-            success: false,
-            error: 'Solo el personal puede resolver solicitudes de extensión.'
-        });
-        return;
+      res.status(403).json({
+        success: false,
+        error: 'Solo el personal puede resolver solicitudes de extensión.'
+      });
+      return;
     }
 
-    const validatedBody = await validateRequest<{status: 'APPROVED' | 'REJECTED'}>(
+    const validatedBody = await validateRequest<{ status: 'APPROVED' | 'REJECTED' }>(
       resolverExtensionSchema,
       req.body
     );
@@ -139,7 +179,7 @@ export async function adminResolverExtension(req: Request, res: Response) {
     const requestData = await resolverExtension(requestId, validatedBody.status);
 
     // Notify student globally (each client can filter by 'estudianteId')
-    // We typically want the original student's userId so we have to get it. 
+    // We typically want the original student's userId so we have to get it.
     // Usually it can be stored in the request or queried. But the notification event broadcasts it.
     notifyExtensionResolved(requestId, requestData);
 
@@ -150,12 +190,12 @@ export async function adminResolverExtension(req: Request, res: Response) {
     });
   } catch (error) {
     if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        });
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
     } else {
-        throw error;
+      throw error;
     }
   }
 }
