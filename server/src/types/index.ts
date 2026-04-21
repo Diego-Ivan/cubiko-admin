@@ -13,6 +13,8 @@ export enum PersonalRol {
   ADMIN = 'Admin'
 }
 
+export type TipoUsuario = 'estudiante' | 'personal';
+
 export interface Estudiante {
   id: number;
   nombre: string;
@@ -83,7 +85,7 @@ export interface ReservaWithRoom extends Reserva {
 
 export interface JWTPayload {
   id: number;
-  tipo: 'estudiante' | 'personal';
+  tipo: TipoUsuario;
   email: string;
   rol?: PersonalRol;
 }
@@ -138,7 +140,13 @@ export interface CancelarReservaRequest {
   reservaId: number;
 }
 
+
 export interface ExtenderReservaRequest {
+  reservaId: number;
+}
+
+export interface CrearQrRequest {
+
   reservaId: number;
 }
 
