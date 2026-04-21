@@ -34,7 +34,9 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
             ]
         );
 
-        if ((conflicts as any[]).length > 0) {
+        const conflictos = conflicts as any[];
+    
+        if (conflictos.length > 0) {
             throw new ValidationError('La sala ya está reservada en el rango seleccionado');
         }
 
@@ -55,7 +57,8 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
 
         await connection.commit();
 
-        return (result as any).insertId as number;
+        const insertResult = result as { insertId: number };
+        return insertResult.insertId;
     } catch (error) {
         await connection.rollback();
         throw error;
