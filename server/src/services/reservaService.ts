@@ -1,7 +1,7 @@
 import { PoolConnection } from 'mysql2/promise';
 import pool from '../config/database';
 import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
-import QRCode  from 'qrcode';
+import QRCode from 'qrcode';
 
 // TODO: Optimizar a una cache más eficiente
 const qrCache = new Map<string, string>();
@@ -150,7 +150,7 @@ export async function solicitarExtension(reservaId: number, estudianteId: number
             'INSERT INTO ExtensionRequest (reserva_id, extensionHoras, status) VALUES (?, ?, "PENDING")',
             [reservaId, horas]
         );
-        
+
         return {
             id: (insertResult as any).insertId,
             reserva_id: reservaId,
@@ -238,7 +238,7 @@ export async function generarQrCodeConId(reservaId: number, estudianteId: number
     }
 
     const qrCode = crearQr(tipoQr, reservaId);
-    
+
     connection.release();
     return qrCode;
 }

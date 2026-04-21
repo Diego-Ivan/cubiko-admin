@@ -145,6 +145,10 @@ export interface ExtenderReservaRequest {
   reservaId: number;
 }
 
+export interface ResolverExtensionRequest {
+  status: 'APPROVED' | 'REJECTED';
+}
+
 export interface CrearQrRequest {
 
   reservaId: number;

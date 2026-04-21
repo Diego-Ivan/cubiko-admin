@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema, extenderReservaParamSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
+import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema, extenderReservaParamSchema, crearReservaSchema, crearQrSchema, resolverExtensionSchema } from '../utils/validators';
 import { notifyAdminsNewExtension, notifyExtensionResolved } from '../socket/socketHandler';
 import { z } from 'zod';
 import { cancelarReservaConId, crearReservaConTransaccion, solicitarExtension, resolverExtension, generarQrCodeConId, TipoQr } from '../services/reservaService';
-import { ApiError, CancelarReservaRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ExtenderReservaRequest, CrearQrRequest, ValidationError } from '../types';
+import { ApiError, CancelarReservaRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ExtenderReservaRequest, CrearQrRequest, ValidationError, ResolverExtensionRequest } from '../types';
 
 
 export async function crearReserva(req: Request, res: Response) {
@@ -149,9 +149,7 @@ export async function extenderReserva(req: Request, res: Response) {
   }
 }
 
-export const resolverExtensionSchema = z.object({
-  status: z.enum(['APPROVED', 'REJECTED'])
-});
+
 
 export async function adminResolverExtension(req: Request, res: Response) {
   try {
@@ -171,7 +169,7 @@ export async function adminResolverExtension(req: Request, res: Response) {
       return;
     }
 
-    const validatedBody = await validateRequest<{ status: 'APPROVED' | 'REJECTED' }>(
+    const validatedBody = await validateRequest<ResolverExtensionRequest>(
       resolverExtensionSchema,
       req.body
     );
@@ -229,12 +227,12 @@ export async function generarQrCodeInvitacion(req: Request, res: Response) {
   }
   catch (error) {
     if (error instanceof ApiError || error instanceof ValidationError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        })
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      })
     } else {
-        throw error;
+      throw error;
     }
   }
 }
@@ -267,12 +265,12 @@ export async function generarQrCodeAcceso(req: Request, res: Response) {
   }
   catch (error) {
     if (error instanceof ApiError || error instanceof ValidationError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        })
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      })
     } else {
-        throw Error;
+      throw Error;
     }
   }
-
+}
