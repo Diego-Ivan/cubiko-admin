@@ -147,7 +147,7 @@ export async function solicitarExtension(reservaId: number, estudianteId: number
         }
 
         const [insertResult] = await connection.query(
-            'INSERT INTO ExtensionRequest (reserva_id, extensionHoras, status) VALUES (?, ?, "PENDING")',
+            'INSERT INTO SolicitudExtension (reserva_id, extensionHoras, status) VALUES (?, ?, "PENDING")',
             [reservaId, horas]
         );
 

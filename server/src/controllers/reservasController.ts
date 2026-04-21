@@ -104,7 +104,7 @@ export async function extenderReserva(req: Request, res: Response) {
       { reservaId: req.params.reservaId }
     );
 
-    const validatedBody = await validateRequest<{ extensionHoras: number }>(
+    const validatedBody = await validateRequest<{ extensionHoras: number, notas?: string }>(
       extenderReservaBodySchema,
       req.body
     );
@@ -159,8 +159,9 @@ export async function adminResolverExtension(req: Request, res: Response) {
       return;
     }
 
+    const userId = req.user?.id;
     const tipo = req.user?.tipo;
-    if (!tipo || tipo !== 'personal') {
+    if (!userId || !tipo || tipo !== 'personal') {
       res.status(403).json({
         success: false,
         error: 'Solo el personal puede resolver solicitudes de extensión.'
