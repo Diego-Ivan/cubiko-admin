@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema, extenderReservaParamSchema, crearReservaSchema, crearQrSchema, resolverExtensionSchema } from '../utils/validators';
 import { notifyAdminsNewExtension, notifyExtensionResolved } from '../socket/socketHandler';
-import { z } from 'zod';
 import { cancelarReservaConId, crearReservaConTransaccion, solicitarExtension, resolverExtension, generarQrCodeConId, TipoQr } from '../services/reservaService';
 import { ApiError, CancelarReservaRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ExtenderReservaRequest, CrearQrRequest, ValidationError, ResolverExtensionRequest } from '../types';
 
