@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
-import { cancelarReserva, generarQrCodeInvitacion, generarQrCodeAcceso } from '../controllers/reservasController'
+import { cancelarReserva, crearReserva, generarQrCodeInvitacion, generarQrCodeAcceso } from '../controllers/reservasController'
 
 const router = Router();
 
@@ -11,4 +11,5 @@ router.patch('/:reservaId/cancel', cancelarReserva)
 router.get('/:reservaId/qrCode/invite', generarQrCodeInvitacion)
 router.get('/:reservaId/qrCode/acceso', generarQrCodeAcceso)
 
+router.put('/create', crearReserva)
 export default router;

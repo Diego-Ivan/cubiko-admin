@@ -1,9 +1,49 @@
 import { Request, Response } from 'express';
-import { validateRequest, cancelarReservaSchema, crearQrSchema } from '../utils/validators';
-import { cancelarReservaConId, generarQrCodeConId, TipoQr } from '../services/reservaService';
-import { ApiError, CancelarReservaRequest, CrearQrRequest, ValidationError } from '../types';
 
-export async function crearReserva(_req: Request, _res: Response) {}
+import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr } from '../services/reservaService';
+import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError } from '../types';
+
+export async function crearReserva(req: Request, res: Response) {
+  try {
+    const validatedBody = await validateRequest<CrearReservaRequest>(crearReservaSchema, req.body); /*valida los datos*/
+    const userId = req.user?.id; /*datos usuario*/
+    const tipo = req.user?.tipo;
+
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    if (!tipo || tipo !== 'estudiante') { /*solo estudiantes pueden crear reservas*/
+      throw new ForbiddenError('Solo los estudiantes pueden crear reservas');
+    } 
+
+    const reservaId = await crearReservaConTransaccion({
+      ...validatedBody, /*copia los datos validados*/
+      estudianteId: userId /*agrega el id del estudiante a los datos para crear la reserva*/
+    });
+
+    res.status(201).json({ /*respuesta exitosa con la reserva creada*/
+      success: true,
+      message: 'Reservación creada con éxito',
+      data: {
+        reservaId
+      }
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message /*respuesta de error con el mensaje del error*/
+      });
+    } else {
+      res.status(500).json({ /*error genérico */
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+}
 
 export async function cancelarReserva(req: Request, res: Response) {
   try {
@@ -48,7 +88,7 @@ export async function cancelarReserva(req: Request, res: Response) {
             message: error.message
         })
     } else {
-        throw Error;
+        throw error;
     }
   }
 }
