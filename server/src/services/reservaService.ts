@@ -138,7 +138,7 @@ export async function solicitarExtension(reservaId: number, estudianteId: number
 
         // Check if there's already a pending request
         const [pendingResults] = await connection.query(
-            'SELECT * FROM ExtensionRequest WHERE reserva_id = ? AND status = "PENDING"',
+            'SELECT * FROM SolicitudExtension WHERE reserva_id = ? AND estado = "Pendiente"',
             [reservaId]
         );
 
@@ -147,7 +147,7 @@ export async function solicitarExtension(reservaId: number, estudianteId: number
         }
 
         const [insertResult] = await connection.query(
-            'INSERT INTO SolicitudExtension (reserva_id, extensionHoras, status) VALUES (?, ?, "PENDING")',
+            'INSERT INTO SolicitudExtension (reserva_id, extensionHoras, status) VALUES (?, ?, "Pendiente")',
             [reservaId, horas]
         );
 
@@ -155,7 +155,7 @@ export async function solicitarExtension(reservaId: number, estudianteId: number
             id: (insertResult as any).insertId,
             reserva_id: reservaId,
             extensionHoras: horas,
-            status: "PENDING",
+            status: "Pendiente",
             estudianteId: estudianteId
         };
     }
@@ -164,7 +164,7 @@ export async function solicitarExtension(reservaId: number, estudianteId: number
     }
 }
 
-export async function resolverExtension(requestId: number, newStatus: 'APPROVED' | 'REJECTED') {
+export async function resolverExtension(requestId: number, newStatus: 'Aprobada' | 'Rechazada') {
     const connection = await pool.getConnection();
 
     try {
@@ -185,11 +185,11 @@ export async function resolverExtension(requestId: number, newStatus: 'APPROVED'
         }
 
         await connection.query(
-            'UPDATE ExtensionRequest SET status = ? WHERE id = ?',
+            'UPDATE SolicitudExtension SET estado = ? WHERE id = ?',
             [newStatus, requestId]
         );
 
-        if (newStatus === 'APPROVED') {
+        if (newStatus === 'Aprobada') {
             await connection.query(
                 'UPDATE Reserva SET horaFin = ADDTIME(horaFin, SEC_TO_TIME(? * 3600)) WHERE id = ?',
                 [request.extensionHoras, request.reserva_id]

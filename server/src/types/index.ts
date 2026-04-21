@@ -146,7 +146,7 @@ export interface ExtenderReservaRequest {
 }
 
 export interface ResolverExtensionRequest {
-  status: 'APPROVED' | 'REJECTED';
+  status: 'Aprobada' | 'Rechazada';
 }
 
 export interface CrearQrRequest {
