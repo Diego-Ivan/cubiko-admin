@@ -132,7 +132,7 @@ export async function extenderReserva(req: Request, res: Response) {
     // Notify admins
     notifyAdminsNewExtension(requestData);
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       message: 'La solicitud de extensión ha sido enviada con éxito',
       data: requestData
