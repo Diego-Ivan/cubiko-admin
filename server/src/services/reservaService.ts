@@ -1,5 +1,29 @@
+import { PoolConnection } from 'mysql2/promise';
 import pool from '../config/database';
-import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError } from '../types';
+import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
+import QRCode  from 'qrcode';
+
+// TODO: Optimizar a una cache más eficiente
+const qrCache = new Map<string, string>();
+
+export enum TipoQr {
+    Invitacion = "invitacion",
+    Acceso = "acceso"
+}
+
+async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
+    const [resultado] = await connection.query(
+        'SELECT * FROM Reserva WHERE id = ?',
+        [reservaId]
+    );
+
+    const reservaciones = resultado as Reserva[];
+    if (reservaciones.length == 0) {
+        throw new NotFoundError(`La reservación con id ${reservaId} no fue encontrada`);
+    }
+
+    return reservaciones[0];
+}
 
 export async function crearReservaConTransaccion(data: CrearReservaRequest & { estudianteId: number }) {
     const connection = await pool.getConnection();
@@ -68,17 +92,8 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
     const connection = await pool.getConnection();
 
     try {
-        const [resultado] = await connection.query(
-            'SELECT * FROM Reserva WHERE id = ?',
-            [reservaId]
-        );
+        const reservacion = await obtenerReservaConId(connection, reservaId);
 
-        const reservaciones = resultado as any[];
-        if (reservaciones.length == 0) {
-            throw new NotFoundError(`La reservación con id ${reservaId} no fue encontrada`);
-        }
-
-        const reservacion = reservaciones[0] as Reserva;
         if (reservacion.estudiante_id != estudianteId) {
             throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
         }
@@ -97,4 +112,42 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
     }
 }
 
+async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
+    const formatoQr = `${tipo};${reservaId}`;
 
+    const cachedQr = qrCache.get(formatoQr);
+    if (cachedQr) {
+        return cachedQr;
+    }
+
+    const qrCode = await QRCode.toDataURL(formatoQr, {
+        errorCorrectionLevel: "H",
+        type: 'image/png',
+        margin: 1,
+        scale: 10
+    });
+    qrCache.set(formatoQr, qrCode);
+
+    return qrCode;
+}
+
+export async function generarQrCodeConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario, tipoQr: TipoQr): Promise<string> {
+    const connection = await pool.getConnection();
+
+    const reservacion = await obtenerReservaConId(connection, reservaId);
+
+    if (reservacion.status !== ReservaStatus.ACTIVA) {
+        connection.release();
+        throw new ValidationError(`No se puede generar un QR para la reserva ${reservaId}. Se hizo la solicitud para una reserva ${reservacion.status}`)
+    }
+
+    if (estudianteId !== reservacion.estudiante_id && tipoUsuario !== 'personal') {
+        connection.release();
+        throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+    }
+
+    const qrCode = crearQr(tipoQr, reservaId);
+    
+    connection.release();
+    return qrCode;
+}

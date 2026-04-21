@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { validateRequest, cancelarReservaSchema, crearReservaSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion } from '../services/reservaService';
-import { ApiError, CancelarReservaRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError } from '../types';
+
+import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr } from '../services/reservaService';
+import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError } from '../types';
 
 export async function crearReserva(req: Request, res: Response) {
   try {
@@ -94,3 +95,79 @@ export async function cancelarReserva(req: Request, res: Response) {
 
 /* Solamente si el usuario es un bibliotecario o administrador */
 export async function listReservas(_req: Request, _res: Response) {}
+
+export async function generarQrCodeInvitacion(req: Request, res: Response) {
+  try {
+    // Extract and validate reservaId from route params
+    const validatedParams = await validateRequest<CrearQrRequest>(
+      crearQrSchema,
+      { reservaId: req.params.reservaId }
+    );
+
+    const reservaId = Number(validatedParams.reservaId);
+    const userId = req.user?.id;
+    const tipoUsuario = req.user?.tipo;
+
+    if (!userId || !tipoUsuario) {
+      res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      })
+      return;
+    }
+
+    const qr = await generarQrCodeConId(reservaId, userId, tipoUsuario, TipoQr.Invitacion);
+    res.status(200).json({
+      success: true,
+      obj: qr,
+    })
+  }
+  catch (error) {
+    if (error instanceof ApiError || error instanceof ValidationError) {
+        res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        })
+    } else {
+        throw error;
+    }
+  }
+}
+
+export async function generarQrCodeAcceso(req: Request, res: Response) {
+  try {
+    // Extract and validate reservaId from route params
+    const validatedParams = await validateRequest<CrearQrRequest>(
+      crearQrSchema,
+      { reservaId: req.params.reservaId }
+    );
+
+    const reservaId = Number(validatedParams.reservaId);
+    const userId = req.user?.id;
+    const tipoUsuario = req.user?.tipo;
+
+    if (!userId || !tipoUsuario) {
+      res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      })
+      return;
+    }
+
+    const qr = await generarQrCodeConId(reservaId, userId, tipoUsuario, TipoQr.Acceso);
+    res.status(200).json({
+      success: true,
+      obj: qr,
+    })
+  }
+  catch (error) {
+    if (error instanceof ApiError || error instanceof ValidationError) {
+        res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        })
+    } else {
+        throw Error;
+    }
+  }
+}
