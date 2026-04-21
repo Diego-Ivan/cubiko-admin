@@ -128,6 +128,10 @@ export interface CancelarReservaRequest {
   reservaId: number;
 }
 
+export interface ExtenderReservaRequest {
+  reservaId: number;
+}
+
 
 // Respuesta de la API
 

@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema } from '../utils/validators';
+import { validateRequest, cancelarReservaSchema, extenderReservaBodySchema, extenderReservaParamSchema } from '../utils/validators';
 import { cancelarReservaConId, solicitarExtension, resolverExtension } from '../services/reservaService';
 import { notifyAdminsNewExtension, notifyExtensionResolved } from '../socket/socketHandler';
 import { z } from 'zod';
-import { ApiError, CancelarReservaRequest } from '../types';
+import { ApiError, CancelarReservaRequest, ExtenderReservaRequest } from '../types';
 
 export async function crearReserva(_req: Request, _res: Response) {}
 
@@ -60,8 +60,8 @@ export async function listReservas(_req: Request, _res: Response) {}
 
 export async function extenderReserva(req: Request, res: Response) {
   try {
-    const validatedParams = await validateRequest<CancelarReservaRequest>(
-      cancelarReservaSchema,
+    const validatedParams = await validateRequest<ExtenderReservaRequest>(
+      extenderReservaParamSchema,
       { reservaId: req.params.reservaId }
     );
 
