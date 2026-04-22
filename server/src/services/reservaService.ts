@@ -25,6 +25,21 @@ async function obtenerReservaConId(connection: PoolConnection, reservaId: number
     return reservaciones[0];
 }
 
+export async function obtenerReservasDeEstudiante(estudianteId: number): Promise<Reserva[]> {
+    const connection = await pool.getConnection();
+
+    try {
+        const [resultado] = await connection.query(
+            'SELECT * FROM Reserva WHERE estudiante_id = ? ORDER BY fechaInicio DESC, horaInicio DESC',
+            [estudianteId]
+        );
+
+        return resultado as Reserva[];
+    } finally {
+        connection.release();
+    }
+}
+
 export async function crearReservaConTransaccion(data: CrearReservaRequest & { estudianteId: number }) {
     const connection = await pool.getConnection();
 

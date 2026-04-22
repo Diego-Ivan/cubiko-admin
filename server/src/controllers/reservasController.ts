@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion } from '../services/reservaService';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante } from '../services/reservaService';
 import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError } from '../types';
 
 export async function crearReserva(req: Request, res: Response) {
@@ -38,6 +38,40 @@ export async function crearReserva(req: Request, res: Response) {
       });
     } else {
       res.status(500).json({ /*error genérico */
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+}
+
+export async function obtenerMisReservas(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const tipo = req.user?.tipo;
+
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    if (!tipo || tipo !== 'estudiante') {
+      throw new ForbiddenError('Solo los estudiantes pueden ver sus reservas');
+    }
+
+    const reservas = await obtenerReservasDeEstudiante(userId);
+
+    res.status(200).json({
+      success: true,
+      data: reservas
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    } else {
+      res.status(500).json({
         success: false,
         message: 'Internal server error'
       });
