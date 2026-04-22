@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr } from '../services/reservaService';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante } from '../services/reservaService';
 import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError } from '../types';
 
 export async function crearReserva(req: Request, res: Response) {
@@ -16,7 +16,7 @@ export async function crearReserva(req: Request, res: Response) {
 
     if (!tipo || tipo !== 'estudiante') { /*solo estudiantes pueden crear reservas*/
       throw new ForbiddenError('Solo los estudiantes pueden crear reservas');
-    } 
+    }
 
     const reservaId = await crearReservaConTransaccion({
       ...validatedBody, /*copia los datos validados*/
@@ -38,6 +38,78 @@ export async function crearReserva(req: Request, res: Response) {
       });
     } else {
       res.status(500).json({ /*error genérico */
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+}
+
+export async function obtenerMisReservas(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const tipo = req.user?.tipo;
+
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    if (!tipo || tipo !== 'estudiante') {
+      throw new ForbiddenError('Solo los estudiantes pueden ver sus reservas');
+    }
+
+    const reservas = await obtenerReservasDeEstudiante(userId);
+
+    res.status(200).json({
+      success: true,
+      data: reservas
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  }
+}
+
+export async function reprogramarReserva(req: Request, res: Response) {
+  try {
+    const validatedParams = await validateRequest<CancelarReservaRequest>(cancelarReservaSchema, { reservaId: req.params.reservaId });
+    const validatedBody = await validateRequest<CrearReservaRequest>(crearReservaSchema, req.body);
+    const userId = req.user?.id;
+    const tipo = req.user?.tipo;
+
+    if (!userId) {
+      throw new UnauthorizedError();
+    }
+
+    if (!tipo || tipo !== 'estudiante') {
+      throw new ForbiddenError('Solo los estudiantes pueden reprogramar reservas');
+    }
+
+    const reservaId = Number(validatedParams.reservaId);
+
+    await reprogramarReservaConTransaccion(reservaId, userId, validatedBody);
+
+    res.status(200).json({
+      success: true,
+      message: 'Reservación reprogramada con éxito'
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      });
+    } else {
+      res.status(500).json({
         success: false,
         message: 'Internal server error'
       });
@@ -67,11 +139,11 @@ export async function cancelarReserva(req: Request, res: Response) {
     }
 
     if (!tipo || tipo !== 'estudiante') {
-        res.status(400).json({
-            success: false,
-            error: 'Esta ruta solo permite cancelaciones para estudiantes. Utilice la ruta adecuada para cancelaciones administrativas.'
-        });
-        return;
+      res.status(400).json({
+        success: false,
+        error: 'Esta ruta solo permite cancelaciones para estudiantes. Utilice la ruta adecuada para cancelaciones administrativas.'
+      });
+      return;
     }
 
     // Call the service to cancel the reservation
@@ -83,18 +155,18 @@ export async function cancelarReserva(req: Request, res: Response) {
     });
   } catch (error) {
     if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        })
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      })
     } else {
-        throw error;
+      throw error;
     }
   }
 }
 
 /* Solamente si el usuario es un bibliotecario o administrador */
-export async function listReservas(_req: Request, _res: Response) {}
+export async function listReservas(_req: Request, _res: Response) { }
 
 export async function generarQrCodeInvitacion(req: Request, res: Response) {
   try {
@@ -124,12 +196,12 @@ export async function generarQrCodeInvitacion(req: Request, res: Response) {
   }
   catch (error) {
     if (error instanceof ApiError || error instanceof ValidationError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        })
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      })
     } else {
-        throw error;
+      throw error;
     }
   }
 }
@@ -162,12 +234,12 @@ export async function generarQrCodeAcceso(req: Request, res: Response) {
   }
   catch (error) {
     if (error instanceof ApiError || error instanceof ValidationError) {
-        res.status(error.statusCode).json({
-            success: false,
-            message: error.message
-        })
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message
+      })
     } else {
-        throw Error;
+      throw Error;
     }
   }
 }
