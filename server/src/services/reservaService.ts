@@ -1,4 +1,4 @@
-import { PoolConnection } from '../utils/sqliteAdapter';
+import { PoolConnection } from '../utils/d1Adapter';
 import pool from '../config/database';
 import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
 import QRCode from 'qrcode';

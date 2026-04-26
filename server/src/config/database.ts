@@ -1,18 +1,18 @@
 import dotenv from 'dotenv';
-import path from 'path';
-import { createPool } from '../utils/sqliteAdapter';
+import { Pool, createPoolFromD1 } from '../utils/d1Adapter';
 
 dotenv.config();
 
-const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'biblioteca.db');
+let pool: Pool;
 
-// Create directory if it doesn't exist
-import fs from 'fs';
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+// Check if we're in a Workers environment (D1 is available in context)
+if (typeof globalThis !== 'undefined' && (globalThis as any).DB) {
+  // Production or Local Wrangler: Using Cloudflare D1
+  pool = createPoolFromD1((globalThis as any).DB);
+  console.log('Database: Using Cloudflare D1');
+} else {
+  // Gracefully enforce Wrangler
+  throw new Error('D1 database binding not found. Please run the application using `npm run dev:worker` to ensure the Cloudflare Workers environment and D1 are properly injected.');
 }
-
-const pool = createPool(dbPath);
 
 export default pool;
