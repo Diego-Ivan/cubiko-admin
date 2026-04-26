@@ -1,7 +1,7 @@
 import { PoolConnection } from 'mysql2/promise';
 import pool from '../config/database';
 import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
-import QRCode  from 'qrcode';
+import QRCode from 'qrcode';
 
 // TODO: Optimizar a una cache más eficiente
 const qrCache = new Map<string, string>();
@@ -23,6 +23,21 @@ async function obtenerReservaConId(connection: PoolConnection, reservaId: number
     }
 
     return reservaciones[0];
+}
+
+export async function obtenerReservasDeEstudiante(estudianteId: number): Promise<Reserva[]> {
+    const connection = await pool.getConnection();
+
+    try {
+        const [resultado] = await connection.query(
+            'SELECT * FROM Reserva WHERE estudiante_id = ? ORDER BY fechaInicio DESC, horaInicio DESC',
+            [estudianteId]
+        );
+
+        return resultado as Reserva[];
+    } finally {
+        connection.release();
+    }
 }
 
 export async function crearReservaConTransaccion(data: CrearReservaRequest & { estudianteId: number }) {
@@ -147,7 +162,78 @@ export async function generarQrCodeConId(reservaId: number, estudianteId: number
     }
 
     const qrCode = crearQr(tipoQr, reservaId);
-    
+
     connection.release();
     return qrCode;
+}
+
+export async function reprogramarReservaConTransaccion(reservaId: number, estudianteId: number, data: CrearReservaRequest) {
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const reservacion = await obtenerReservaConId(connection, reservaId);
+
+        if (reservacion.estudiante_id != estudianteId) {
+            throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+        }
+
+        if (reservacion.status != ReservaStatus.ACTIVA) {
+            throw new ValidationError(`No se pudo reprogramar la reserva ${reservaId}. La reserva está ${reservacion.status}`);
+        }
+
+        const [salas] = await connection.query(
+            'SELECT 1 FROM Sala WHERE ubicacion = ? AND numero = ?',
+            [data.salaUbicacion, data.salaNumero]
+        );
+
+        if ((salas as any[]).length === 0) {
+            throw new ValidationError(`La sala ${data.salaNumero} en ${data.salaUbicacion} no existe`);
+        }
+
+        const [conflicts] = await connection.query(
+            `SELECT id FROM Reserva
+                WHERE sala_ubicacion = ? AND sala_numero = ? AND status = ? AND id != ?
+                AND NOT (
+                    TIMESTAMP(fechaFin, horaFin) <= TIMESTAMP(?, ?) OR
+                    TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
+                )`,
+            [
+                data.salaUbicacion,
+                data.salaNumero,
+                ReservaStatus.ACTIVA,
+                reservaId,
+                data.fechaInicio,
+                data.horaInicio,
+                data.fechaFin,
+                data.horaFin
+            ]
+        );
+
+        if ((conflicts as any[]).length > 0) {
+            throw new ValidationError('La sala ya está reservada en el rango seleccionado');
+        }
+
+        await connection.query(
+            'UPDATE Reserva SET sala_ubicacion = ?, sala_numero = ?, fechaInicio = ?, horaInicio = ?, fechaFin = ?, horaFin = ?, numPersonas = ? WHERE id = ?',
+            [
+                data.salaUbicacion,
+                data.salaNumero,
+                data.fechaInicio,
+                data.horaInicio,
+                data.fechaFin,
+                data.horaFin,
+                data.numPersonas ?? null,
+                reservaId
+            ]
+        );
+
+        await connection.commit();
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
 }
