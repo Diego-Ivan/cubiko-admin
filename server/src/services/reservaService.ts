@@ -180,8 +180,8 @@ export async function resolverExtension(requestId: number, newStatus: 'Aprobada'
 
         const request = requests[0];
 
-        if (request.status !== 'PENDING') {
-            throw new ValidationError(`Request ${requestId} is already resolved`);
+        if (request.status !== 'Pendiente') {
+            throw new ValidationError(`La solicitud ${requestId} ya fue resuelta`);
         }
 
         await connection.query(
