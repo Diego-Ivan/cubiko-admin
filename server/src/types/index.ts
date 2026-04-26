@@ -140,7 +140,17 @@ export interface CancelarReservaRequest {
   reservaId: number;
 }
 
+
+export interface ExtenderReservaRequest {
+  reservaId: number;
+}
+
+export interface ResolverExtensionRequest {
+  status: 'Aprobada' | 'Rechazada';
+}
+
 export interface CrearQrRequest {
+
   reservaId: number;
 }
 

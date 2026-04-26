@@ -1,7 +1,7 @@
 import { PoolConnection } from 'mysql2/promise';
 import pool from '../config/database';
 import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
-import QRCode  from 'qrcode';
+import QRCode from 'qrcode';
 
 // TODO: Optimizar a una cache más eficiente
 const qrCache = new Map<string, string>();
@@ -112,6 +112,96 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
     }
 }
 
+
+export async function solicitarExtension(reservaId: number, estudianteId: number, horas: number) {
+    const connection = await pool.getConnection();
+
+    try {
+        const [resultado] = await connection.query(
+            'SELECT * FROM Reserva WHERE id = ?',
+            [reservaId]
+        );
+
+        const reservaciones = resultado as any[];
+        if (reservaciones.length == 0) {
+            throw new NotFoundError(`La reservación con id ${reservaId} no fue encontrada`);
+        }
+
+        const reservacion = reservaciones[0] as Reserva;
+        if (reservacion.estudiante_id != estudianteId) {
+            throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+        }
+
+        if (reservacion.status != ReservaStatus.ACTIVA) {
+            throw new ValidationError(`No se pudo extender la reserva ${reservaId}. La reserva no está activa.`);
+        }
+
+        // Check if there's already a pending request
+        const [pendingResults] = await connection.query(
+            'SELECT * FROM SolicitudExtension WHERE reserva_id = ? AND estado = "Pendiente"',
+            [reservaId]
+        );
+
+        if ((pendingResults as any[]).length > 0) {
+            throw new ValidationError(`Ya existe una solicitud pendiente para la reserva ${reservaId}.`);
+        }
+
+        const [insertResult] = await connection.query(
+            'INSERT INTO SolicitudExtension (reserva_id, extensionHoras, estado) VALUES (?, ?, "Pendiente")',
+            [reservaId, horas]
+        );
+
+        return {
+            id: (insertResult as any).insertId,
+            reserva_id: reservaId,
+            extensionHoras: horas,
+            status: "Pendiente",
+            estudianteId: estudianteId
+        };
+    }
+    finally {
+        connection.release();
+    }
+}
+
+export async function resolverExtension(requestId: number, newStatus: 'Aprobada' | 'Rechazada') {
+    const connection = await pool.getConnection();
+
+    try {
+        const [requestResult] = await connection.query(
+            'SELECT * FROM ExtensionRequest WHERE id = ?',
+            [requestId]
+        );
+
+        const requests = requestResult as any[];
+        if (requests.length === 0) {
+            throw new NotFoundError(`Request with id ${requestId} not found`);
+        }
+
+        const request = requests[0];
+
+        if (request.status !== 'Pendiente') {
+            throw new ValidationError(`La solicitud ${requestId} ya fue resuelta`);
+        }
+
+        await connection.query(
+            'UPDATE SolicitudExtension SET estado = ? WHERE id = ?',
+            [newStatus, requestId]
+        );
+
+        if (newStatus === 'Aprobada') {
+            await connection.query(
+                'UPDATE Reserva SET horaFin = ADDTIME(horaFin, SEC_TO_TIME(? * 3600)) WHERE id = ?',
+                [request.extensionHoras, request.reserva_id]
+            );
+        }
+
+        return request; // contains reserva_id so we can look up who requested
+    } finally {
+        connection.release();
+    }
+}
+
 async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
     const formatoQr = `${tipo};${reservaId}`;
 
@@ -119,6 +209,7 @@ async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
     if (cachedQr) {
         return cachedQr;
     }
+
 
     const qrCode = await QRCode.toDataURL(formatoQr, {
         errorCorrectionLevel: "H",
@@ -147,7 +238,7 @@ export async function generarQrCodeConId(reservaId: number, estudianteId: number
     }
 
     const qrCode = crearQr(tipoQr, reservaId);
-    
+
     connection.release();
     return qrCode;
 }
