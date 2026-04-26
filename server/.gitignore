@@ -13,6 +13,10 @@ dist/
 out/
 build/
 
+# Ignorar bases de datos para test
+data/
+*.db
+
 # IDE
 .vscode/
 .idea/

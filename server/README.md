@@ -12,7 +12,7 @@
 
 - **Node.js** 20+
 - **npm** or **yarn**
-- **MySQL** 8.0+ (or use Docker)
+- **SQLite** (included in Node.js, no separate installation needed)
 
 ## Variables de Environment
 
@@ -20,11 +20,7 @@ Configura el environment como se muestra a continuación
 
 ```env
 # Database Configuration
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=password
-DB_NAME=biblioteca
+DB_PATH=./data/biblioteca.db
 
 # JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production

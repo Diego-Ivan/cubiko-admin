@@ -1,17 +1,18 @@
-import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import path from 'path';
+import { createPool } from '../utils/sqliteAdapter';
 
 dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_NAME || 'biblioteca',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'biblioteca.db');
+
+// Create directory if it doesn't exist
+import fs from 'fs';
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const pool = createPool(dbPath);
 
 export default pool;

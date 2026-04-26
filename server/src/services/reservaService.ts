@@ -1,4 +1,4 @@
-import { PoolConnection } from 'mysql2/promise';
+import { PoolConnection } from '../utils/sqliteAdapter';
 import pool from '../config/database';
 import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
 import QRCode from 'qrcode';
@@ -59,8 +59,8 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
             `SELECT id FROM Reserva
                 WHERE sala_ubicacion = ? AND sala_numero = ? AND status = ?
                 AND NOT (
-                    TIMESTAMP(fechaFin, horaFin) <= TIMESTAMP(?, ?) OR
-                    TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
+                    datetime(fechaFin || 'T' || horaFin) <= datetime(? || 'T' || ?) OR
+                    datetime(fechaInicio || 'T' || horaInicio) >= datetime(? || 'T' || ?)
                 )`,
             [
                 data.salaUbicacion,
@@ -94,7 +94,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
 
         await connection.commit();
 
-        return (result as any).insertId as number;
+        return (result as any).lastID as number;
     } catch (error) {
         await connection.rollback();
         throw error;

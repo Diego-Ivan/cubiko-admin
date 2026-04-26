@@ -1,17 +1,12 @@
-import app from './app';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const PORT = process.env.PORT || 3001;
 
 /**
- * Initialize database schema if needed
+ * Initialize SQLite database with schema
+ * This script reads the schema from schema-migration.sql and initializes the database
  */
-async function initializeDatabase(): Promise<void> {
+async function initDatabase() {
   const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'biblioteca.db');
   const schemaPath = path.join(process.cwd(), 'schema-migration.sql');
 
@@ -31,7 +26,7 @@ async function initializeDatabase(): Promise<void> {
       try {
         // Enable foreign keys
         await new Promise<void>((res, rej) => {
-          db.run('PRAGMA foreign_keys = ON', (e) => (e ? rej(e) : res()));
+          db.run('PRAGMA foreign_keys = ON', (e) => e ? rej(e) : res());
         });
 
         // Check if tables exist
@@ -48,7 +43,7 @@ async function initializeDatabase(): Promise<void> {
         });
 
         if (tables.length === 0) {
-          console.log('📊 Initializing database schema...');
+          console.log('Initializing database schema...');
 
           // Read schema file
           const schema = fs.readFileSync(schemaPath, 'utf-8');
@@ -63,7 +58,7 @@ async function initializeDatabase(): Promise<void> {
             await new Promise<void>((res, rej) => {
               db.run(statement, (err) => {
                 if (err) {
-                  console.error(`Error executing statement:`, err);
+                  console.error(`Error executing statement: ${statement}`, err);
                   rej(err);
                 } else {
                   res();
@@ -72,9 +67,9 @@ async function initializeDatabase(): Promise<void> {
             });
           }
 
-          console.log('✅ Database schema initialized successfully!');
+          console.log('Database schema initialized successfully!');
         } else {
-          console.log('✓ Database schema already exists.');
+          console.log('Database schema already exists.');
         }
 
         db.close((err) => {
@@ -89,15 +84,17 @@ async function initializeDatabase(): Promise<void> {
   });
 }
 
-// Initialize database and start server
-initializeDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on http://localhost:${PORT}`);
-      console.log(`📋 Health check: http://localhost:${PORT}/health`);
+// Run if this is the main module
+if (require.main === module) {
+  initDatabase()
+    .then(() => {
+      console.log('Database initialization complete!');
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('Database initialization failed:', err);
+      process.exit(1);
     });
-  })
-  .catch((err) => {
-    console.error('❌ Failed to initialize database:', err);
-    process.exit(1);
-  });
+}
+
+export { initDatabase };

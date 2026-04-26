@@ -1,120 +1,104 @@
+PRAGMA foreign_keys = ON;
 
-
-CREATE DATABASE biblioteca;
-USE biblioteca;
+-- SQLite no usa CREATE DATABASE / USE
 
 CREATE TABLE Estudiante (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    nombre VARCHAR(255) NOT NULL,
-    status ENUM('Activo', 'Inactivo', 'Egresado') NOT NULL,
-    bloqueado BOOLEAN NOT NULL DEFAULT FALSE
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('Activo', 'Inactivo', 'Egresado')),
+    bloqueado INTEGER NOT NULL DEFAULT 0 CHECK (bloqueado IN (0, 1)),
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE Material (
-    matId VARCHAR(50) PRIMARY KEY,
-    tipo VARCHAR(100) NOT NULL
+    matId TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL
 );
 
 CREATE TABLE Sala (
-    numero INT NOT NULL,
-    ubicacion VARCHAR(255) NOT NULL,
-    maxPersonas INT NOT NULL,
-    minPersonas INT NOT NULL,
+    numero INTEGER NOT NULL,
+    ubicacion TEXT NOT NULL,
+    maxPersonas INTEGER NOT NULL,
+    minPersonas INTEGER NOT NULL,
     PRIMARY KEY (ubicacion, numero),
     CHECK (minPersonas <= maxPersonas)
 );
 
-
 CREATE TABLE PrestamoMaterial (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    estudiante_id INT NOT NULL,
-    material_id VARCHAR(50) NOT NULL,
-    fechaInicio DATE NOT NULL,
-    fechaFin DATE,
-
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    estudiante_id INTEGER NOT NULL,
+    material_id TEXT NOT NULL,
+    fechaInicio TEXT NOT NULL,
+    fechaFin TEXT,
     FOREIGN KEY (estudiante_id) REFERENCES Estudiante(id)
         ON DELETE CASCADE,
     FOREIGN KEY (material_id) REFERENCES Material(matId)
         ON DELETE CASCADE
 );
 
-
 CREATE TABLE Reserva (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    estudiante_id INT NOT NULL,
-    sala_ubicacion VARCHAR(255),
-    sala_numero INT,
-    fechaInicio DATE NOT NULL,
-    fechaFin DATE,
-
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    estudiante_id INTEGER NOT NULL,
+    sala_ubicacion TEXT,
+    sala_numero INTEGER,
+    fechaInicio TEXT NOT NULL,
+    fechaFin TEXT,
+    horaInicio TEXT,
+    horaFin TEXT,
+    numPersonas INTEGER,
+    status TEXT DEFAULT 'Activa'
+        CHECK (status IN ('Activa', 'Completada', 'Cancelada')),
     FOREIGN KEY (estudiante_id) REFERENCES Estudiante(id)
         ON DELETE CASCADE,
     FOREIGN KEY (sala_ubicacion, sala_numero) REFERENCES Sala(ubicacion, numero)
         ON DELETE SET NULL
 );
 
-
 CREATE TABLE Multa (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    estudiante_id INT NOT NULL,
-    monto DECIMAL(10,2) NOT NULL,
-    fechaAplicacion DATE NOT NULL,
-    pagado BOOLEAN NOT NULL DEFAULT FALSE,
-
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    estudiante_id INTEGER NOT NULL,
+    monto NUMERIC NOT NULL,
+    fechaAplicacion TEXT NOT NULL,
+    pagado INTEGER NOT NULL DEFAULT 0 CHECK (pagado IN (0, 1)),
     FOREIGN KEY (estudiante_id) REFERENCES Estudiante(id)
         ON DELETE CASCADE
 );
 
-
 CREATE TABLE Pago (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    multa_id INT NOT NULL,
-    monto DECIMAL(10,2) NOT NULL,
-    fecha DATE NOT NULL,
-
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    multa_id INTEGER NOT NULL,
+    monto NUMERIC NOT NULL,
+    fecha TEXT NOT NULL,
     FOREIGN KEY (multa_id) REFERENCES Multa(id)
         ON DELETE CASCADE,
-
     CHECK (monto >= 0)
 );
 
-
-ALTER TABLE Estudiante 
-ADD COLUMN email VARCHAR(255) UNIQUE NOT NULL,
-ADD COLUMN password_hash VARCHAR(255) NOT NULL,
-ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-
 CREATE TABLE PersonalBiblioteca (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    nombre VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    rol ENUM('Bibliotecario', 'Admin') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    rol TEXT NOT NULL CHECK (rol IN ('Bibliotecario', 'Admin')),
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE Reserva
-ADD COLUMN horaInicio TIME,
-ADD COLUMN horaFin TIME,
-ADD COLUMN numPersonas INT,
-ADD COLUMN status ENUM('Activa', 'Completada', 'Cancelada') DEFAULT 'Activa';
-
-
 CREATE TABLE SolicitudExtension (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    reserva_id INT NOT NULL,
-    fechaSolicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    estado ENUM('Pendiente', 'Aprobada', 'Rechazada') NOT NULL DEFAULT 'Pendiente',
-    extensionHoras DECIMAL(3,1) NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reserva_id INTEGER NOT NULL,
+    fechaSolicitud TEXT DEFAULT CURRENT_TIMESTAMP,
+    estado TEXT NOT NULL DEFAULT 'Pendiente'
+        CHECK (estado IN ('Pendiente', 'Aprobada', 'Rechazada')),
+    extensionHoras NUMERIC NOT NULL,
     notas TEXT,
-    fechaAprobacion TIMESTAMP,
-    personal_id INT,
-
+    fechaAprobacion TEXT,
+    personal_id INTEGER,
     FOREIGN KEY (reserva_id) REFERENCES Reserva(id)
         ON DELETE CASCADE,
     FOREIGN KEY (personal_id) REFERENCES PersonalBiblioteca(id)
         ON DELETE SET NULL,
-    
     CHECK (extensionHoras <= 1.5)
 );
 
