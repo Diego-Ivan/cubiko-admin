@@ -1,10 +1,7 @@
 import { PoolConnection } from '../utils/d1Adapter';
 import pool from '../config/database';
 import { CrearReservaRequest, Reserva, NotFoundError, ForbiddenError, ReservaStatus, ValidationError, TipoUsuario } from '../types';
-import QRCode from 'qrcode';
-
-// TODO: Optimizar a una cache más eficiente
-const qrCache = new Map<string, string>();
+import { generateQRDataURL } from '../utils/qrCodeGenerator';
 
 export enum TipoQr {
     Invitacion = "invitacion",
@@ -173,20 +170,9 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
 async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
     const formatoQr = `${tipo};${reservaId}`;
 
-    const cachedQr = qrCache.get(formatoQr);
-    if (cachedQr) {
-        return cachedQr;
-    }
-
     try {
-        const qrCode = await QRCode.toDataURL(formatoQr, {
-            errorCorrectionLevel: "H",
-            type: 'image/png',
-            margin: 1,
-            scale: 10
-        });
-        qrCache.set(formatoQr, qrCode);
-        console.debug(`QR code created and cached for: ${formatoQr}`);
+        const qrCode = await generateQRDataURL(formatoQr, 'svg');
+        console.debug(`QR code created for: ${formatoQr}`);
         
         return qrCode;
     } catch (error) {
