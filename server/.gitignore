@@ -13,6 +13,15 @@ dist/
 out/
 build/
 
+# Wrangler/Workers
+.wrangler/
+*.wrangler.toml
+wrangler.lock
+
+# Ignorar bases de datos para test
+data/
+*.db
+
 # IDE
 .vscode/
 .idea/

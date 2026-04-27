@@ -167,8 +167,42 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
 - **Respuesta**: Documento `JSON`:
   - `200`: La solicitud se completó satisfactoriamente:
   - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: Operación prohibida. Vea el mensaje del error.
+
+### Obtener Mis Reservas
+
+- **Endpoint**: `/api/reservas/mis-reservas`
+- **Tipo de Request**: `GET`
+- **Parámetros**: Ninguno
+- **Cuerpo de la Request**: Ninguno
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+    - `data`: Arreglo de reservaciones del estudiante autenticado.
   - `401`: Operación no autorizada. Vea el mensaje del error.
 
+### Reprogramar Reservación
+
+- **Endpoint**: `/api/reservas/{id}/reschedule`
+- **Tipo de Request**: `PUT`
+- **Parámetros**:
+  - `id`: ID de la reserva a reprogramar.
+- **Cuerpo de la Request**: Documento `JSON`:
+  - `salaNumero`: `number`
+  - `salaUbicacion`: `string`
+  - `fechaInicio`: `string` (Formato YYYY-MM-DD)
+  - `horaInicio`: `string` (Formato HH:MM)
+  - `fechaFin`: `string` (Formato YYYY-MM-DD)
+  - `horaFin`: `string` (Formato HH:MM)
+  - `numPersonas`?: `number`
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+  - `400`: Error de validación (por ejemplo, si la sala no existe o hay conflicto de horario).
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: Operación prohibida si la reserva no pertenece al estudiante.
 
 ## Invitaciones
 
@@ -190,5 +224,3 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
   - `401`: Operación no autorizada. Vea el mensaje del error.
   - `403`: No tiene permisos para modificar esta invitación.
   - `404`: Invitación no encontrada.
-
-  

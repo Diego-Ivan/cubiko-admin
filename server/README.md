@@ -1,18 +1,36 @@
 # API de Cubiko
 
+## 🚀 Cloudflare Workers Deployment
+
+This API is now configured for deployment to Cloudflare Workers with D1 database integration!
+
+**Quick Start**:
+
+1. See [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) for what's been set up
+2. Follow the deployment checklist in that file
+3. See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions
+
+**Current Status**: ✅ Ready to deploy
+
+- Express app compatible with Workers
+- D1 database adapter configured
+- All environment setup complete
+- Build: `npm run build` ✅
+
 ## Features
 
 - [x] Auth basada en JWT para personal y usuarios
 - [x] Enlistar disponibilidad de salas
+- [x] Cloudflare Workers deployment ready
+- [x] D1 database integration
 - [ ] Crear Reservaciones
 - [ ] Modificar reservaciones
-- [ ]
 
 ## Prerequisitos
 
 - **Node.js** 20+
 - **npm** or **yarn**
-- **MySQL** 8.0+ (or use Docker)
+- **SQLite** (included in Node.js, no separate installation needed)
 
 ## Variables de Environment
 
@@ -20,11 +38,7 @@ Configura el environment como se muestra a continuación
 
 ```env
 # Database Configuration
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=password
-DB_NAME=biblioteca
+DB_PATH=./data/biblioteca.db
 
 # JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
@@ -41,16 +55,30 @@ PASSWORD_MIN_LENGTH=10
 ## Available Scripts
 
 ```bash
-# Development
-npm run dev           # Start development server with ts-node
+# Local Development
+npm run dev                  # Start Express dev server with ts-node
+npm run dev:worker          # Start Workers simulator (local Wrangler dev)
+
+# Building
+npm run build               # Compile TypeScript to JavaScript
+npm run build:worker        # Build for Workers deployment (dry-run)
+
+# Deployment to Cloudflare Workers
+npm run deploy:staging      # Deploy to staging Workers environment
+npm run deploy:prod         # Deploy to production Workers environment
+
+# Database Migrations (D1)
+npm run migrate:d1:staging  # Apply schema to staging D1 database
+npm run migrate:d1:prod     # Apply schema to production D1 database
 
 # Production
-npm run build         # Compile TypeScript to JavaScript
-npm start             # Run compiled JavaScript
+npm start                   # Run compiled JavaScript (local)
 
-# Testing
-npm test              # Run Jest tests
-npm run test:watch   # Run tests in watch mode
+# Testing & Linting
+npm test                    # Run Jest tests
+npm run test:watch         # Run tests in watch mode
+npm run lint               # Run ESLint
+npm run lint:fix           # Fix linting issues
 ```
 
 ## API Endpoints

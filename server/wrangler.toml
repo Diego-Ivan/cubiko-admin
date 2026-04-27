@@ -1,0 +1,42 @@
+name = "cubiko_api"
+main = "src/index.worker.ts"
+compatibility_date = "2026-04-23"
+account_id = "8ada90187b0ee7f8bc7efe845563b192"
+
+# Compatibility flags
+compatibility_flags = ["nodejs_compat"]
+
+# Default D1 binding for local development
+[[d1_databases]]
+binding = "DB"
+database_id = "4c51bf88-0419-41e7-a105-a0d0858d9d8a"
+database_name = "biblioteca"
+
+# Build configuration
+[build]
+command = "npm run build"
+
+
+# Staging environment configuration
+[env.staging]
+name = "cubiko_api-staging"
+d1_databases = [
+  { binding = "DB", database_id = "4c51bf88-0419-41e7-a105-a0d0858d9d8a", database_name = "biblioteca-staging" }
+]
+
+[env.staging.vars]
+DB_ENV = "staging"
+ENVIRONMENT = "staging"
+
+# Production environment configuration
+[env.production]
+name = "cubiko_api"
+d1_databases = [
+  { binding = "DB", database_id = "4c51bf88-0419-41e7-a105-a0d0858d9d8a", database_name = "biblioteca" }
+]
+
+[env.production.vars]
+DB_ENV = "production"
+ENVIRONMENT = "production"
+
+

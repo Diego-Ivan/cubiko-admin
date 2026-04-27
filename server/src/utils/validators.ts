@@ -7,7 +7,7 @@ export const passwordSchema = z
   .min(10, 'Password must be at least 10 characters long')
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character');
-  
+
 
 // Validación de registro de estudiante y personal
 // TODO: Me gustaría que la validación pudiera usar los valores de los enums en vez de reescribirlos
@@ -35,17 +35,17 @@ export const roomAvailabilitySchema = z.object({
   fecha: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid date'),
   horaInicio: z.string().regex(/^\d{2}:\d{2}$/, 'Start time must be HH:MM format'),
   horaFin: z.string().regex(/^\d{2}:\d{2}$/, 'End time must be HH:MM format'),
-  capacidad: z.number().int().positive().optional()
+  capacidad: z.coerce.number().int().positive().optional()
 });
 
 export const crearReservaSchema = z.object({
-  salaNumero: z.number({ invalid_type_error: 'salaNumero must be a number' }).int().positive(),
+  salaNumero: z.coerce.number({ invalid_type_error: 'salaNumero must be a number' }).int().positive(),
   salaUbicacion: z.string().min(1, 'salaUbicacion is required'),
   fechaInicio: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid fechaInicio'),
   horaInicio: z.string().regex(/^\d{2}:\d{2}$/, 'horaInicio must be HH:MM format'),
   fechaFin: z.string().refine(date => !isNaN(Date.parse(date)), 'Invalid fechaFin'),
   horaFin: z.string().regex(/^\d{2}:\d{2}$/, 'horaFin must be HH:MM format'),
-  numPersonas: z.number().int().positive().optional()
+  numPersonas: z.coerce.number().int().positive().optional()
 }).refine((data) => {
   const start = new Date(`${data.fechaInicio}T${data.horaInicio}:00`);
   const end = new Date(`${data.fechaFin}T${data.horaFin}:00`);
@@ -56,6 +56,10 @@ export const crearReservaSchema = z.object({
 
 // Cancelar reserva
 export const cancelarReservaSchema = z.object({
+  reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
+});
+
+export const crearQrSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 

@@ -1,23 +1,29 @@
+-- D1 Database Migration: Initial Schema
+-- Created: 2026-04-25
+-- Description: Initialize all tables for biblioteca API
+
+-- Enable foreign keys (note: D1 requires explicit enablement)
 PRAGMA foreign_keys = ON;
 
--- SQLite no usa CREATE DATABASE / USE
-
-CREATE TABLE Estudiante (
+-- Students/Users table
+CREATE TABLE IF NOT EXISTS Estudiante (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('Activo', 'Inactivo', 'Egresado')),
+    status TEXT NOT NULL DEFAULT 'Activo' CHECK (status IN ('Activo', 'Inactivo', 'Egresado')),
     bloqueado INTEGER NOT NULL DEFAULT 0 CHECK (bloqueado IN (0, 1)),
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Material (
+-- Materials/Resources table
+CREATE TABLE IF NOT EXISTS Material (
     matId TEXT PRIMARY KEY,
     tipo TEXT NOT NULL
 );
 
-CREATE TABLE Sala (
+-- Rooms table
+CREATE TABLE IF NOT EXISTS Sala (
     numero INTEGER NOT NULL,
     ubicacion TEXT NOT NULL,
     maxPersonas INTEGER NOT NULL,
@@ -26,7 +32,8 @@ CREATE TABLE Sala (
     CHECK (minPersonas <= maxPersonas)
 );
 
-CREATE TABLE PrestamoMaterial (
+-- Material Loans table
+CREATE TABLE IF NOT EXISTS PrestamoMaterial (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     estudiante_id INTEGER NOT NULL,
     material_id TEXT NOT NULL,
@@ -38,7 +45,8 @@ CREATE TABLE PrestamoMaterial (
         ON DELETE CASCADE
 );
 
-CREATE TABLE Reserva (
+-- Room Reservations table
+CREATE TABLE IF NOT EXISTS Reserva (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     estudiante_id INTEGER NOT NULL,
     sala_ubicacion TEXT,
@@ -56,7 +64,8 @@ CREATE TABLE Reserva (
         ON DELETE SET NULL
 );
 
-CREATE TABLE Multa (
+-- Fines table
+CREATE TABLE IF NOT EXISTS Multa (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     estudiante_id INTEGER NOT NULL,
     monto NUMERIC NOT NULL,
@@ -66,7 +75,8 @@ CREATE TABLE Multa (
         ON DELETE CASCADE
 );
 
-CREATE TABLE Pago (
+-- Payments table
+CREATE TABLE IF NOT EXISTS Pago (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     multa_id INTEGER NOT NULL,
     monto NUMERIC NOT NULL,
@@ -76,16 +86,18 @@ CREATE TABLE Pago (
     CHECK (monto >= 0)
 );
 
-CREATE TABLE PersonalBiblioteca (
+-- Library Staff/Personnel table
+CREATE TABLE IF NOT EXISTS PersonalBiblioteca (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    rol TEXT NOT NULL CHECK (rol IN ('Bibliotecario', 'Admin')),
+    rol TEXT NOT NULL DEFAULT 'Bibliotecario' CHECK (rol IN ('Bibliotecario', 'Admin')),
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE SolicitudExtension (
+-- Reservation Extension Requests table
+CREATE TABLE IF NOT EXISTS SolicitudExtension (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     reserva_id INTEGER NOT NULL,
     fechaSolicitud TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -102,10 +114,13 @@ CREATE TABLE SolicitudExtension (
     CHECK (extensionHoras <= 1.5)
 );
 
-CREATE INDEX idx_estudiante_email ON Estudiante(email);
-CREATE INDEX idx_personal_email ON PersonalBiblioteca(email);
-CREATE INDEX idx_reserva_estudiante ON Reserva(estudiante_id);
-CREATE INDEX idx_reserva_sala ON Reserva(sala_ubicacion, sala_numero);
-CREATE INDEX idx_prestamo_estudiante ON PrestamoMaterial(estudiante_id);
-CREATE INDEX idx_extension_reserva ON SolicitudExtension(reserva_id);
-CREATE INDEX idx_extension_estado ON SolicitudExtension(estado);
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_estudiante_email ON Estudiante(email);
+CREATE INDEX IF NOT EXISTS idx_personal_email ON PersonalBiblioteca(email);
+CREATE INDEX IF NOT EXISTS idx_reserva_estudiante ON Reserva(estudiante_id);
+CREATE INDEX IF NOT EXISTS idx_reserva_sala ON Reserva(sala_ubicacion, sala_numero);
+CREATE INDEX IF NOT EXISTS idx_prestamo_estudiante ON PrestamoMaterial(estudiante_id);
+CREATE INDEX IF NOT EXISTS idx_extension_reserva ON SolicitudExtension(reserva_id);
+CREATE INDEX IF NOT EXISTS idx_extension_estado ON SolicitudExtension(estado);
+
+INSERT INTO `Sala` VALUES (1,'1',6,3),(2,'1',6,3),(3,'1',6,3),(4,'1',6,3),(5,'1',6,3),(6,'1',6,3),(7,'1',6,3),(8,'1',6,3),(9,'1',6,3),(10,'1',6,3),(11,'1',6,3),(12,'1',6,3),(13,'1',6,3),(14,'1',6,3);
