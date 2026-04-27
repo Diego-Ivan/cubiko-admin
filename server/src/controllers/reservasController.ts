@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 
 import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante } from '../services/reservaService';
-import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError } from '../types';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante, obtenerTodasLasReservas, obtenerTodasLasSolicitudesExtension, resolverExtension } from '../services/reservaService';
+import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError, ResolverExtensionRequest } from '../types';
+import { resolverExtensionSchema } from '../utils/validators';
 
 export async function crearReserva(req: Request, res: Response) {
   try {
@@ -165,8 +166,55 @@ export async function cancelarReserva(req: Request, res: Response) {
   }
 }
 
-/* Solamente si el usuario es un bibliotecario o administrador */
-export async function listReservas(_req: Request, _res: Response) { }
+export async function listReservas(req: Request, res: Response) {
+  try {
+    const reservas = await obtenerTodasLasReservas();
+    res.status(200).json({
+      success: true,
+      data: reservas
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+}
+
+export async function listExtensionRequests(req: Request, res: Response) {
+  try {
+    const extensions = await obtenerTodasLasSolicitudesExtension();
+    res.status(200).json({
+      success: true,
+      data: extensions
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+}
+
+export async function adminResolverExtension(req: Request, res: Response) {
+  try {
+    const requestId = Number(req.params.requestId);
+    if (isNaN(requestId) || requestId <= 0) {
+      res.status(400).json({ success: false, error: 'Invalid Request ID' });
+      return;
+    }
+    const validatedBody = await validateRequest<ResolverExtensionRequest>(
+      resolverExtensionSchema,
+      req.body
+    );
+    const requestData = await resolverExtension(requestId, validatedBody.status);
+    res.status(200).json({
+      success: true,
+      message: `La solicitud fue ${validatedBody.status} exitosamente.`,
+      data: requestData
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+    } else {
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  }
+}
 
 export async function generarQrCodeInvitacion(req: Request, res: Response) {
   try {

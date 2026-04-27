@@ -29,12 +29,8 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/reservas', reservasRoutes)
-<<<<<<< Updated upstream
-=======
-app.use('/api/invitations', invitationsRoutes)
+// app.use('/api/invitations', invitationsRoutes) // Add if exists
 app.use('/api/estudiantes', estudiantesRoutes);
->>>>>>> Stashed changes
-
 // 404 handler
 app.use((_req, res) => {
   res.status(404).json({
