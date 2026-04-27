@@ -40,10 +40,37 @@ export async function obtenerReservasDeEstudiante(estudianteId: number): Promise
     }
 }
 
+// Helper function to validate date/time format
+function validateDateTimeFormat(fecha: string, hora: string): void {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const timeRegex = /^\d{2}:\d{2}$/;
+    
+    if (!dateRegex.test(fecha)) {
+        throw new ValidationError(`Formato de fecha inválido: ${fecha}. Use YYYY-MM-DD`);
+    }
+    if (!timeRegex.test(hora)) {
+        throw new ValidationError(`Formato de hora inválido: ${hora}. Use HH:MM`);
+    }
+}
+
 export async function crearReservaConTransaccion(data: CrearReservaRequest & { estudianteId: number }) {
     const connection = await pool.getConnection();
 
     try {
+        // Validate input formats before transaction
+        validateDateTimeFormat(data.fechaInicio, data.horaInicio);
+        validateDateTimeFormat(data.fechaFin, data.horaFin);
+        
+        console.debug('Creating reservation:', {
+            estudianteId: data.estudianteId,
+            salaNumero: data.salaNumero,
+            salaUbicacion: data.salaUbicacion,
+            fechaInicio: data.fechaInicio,
+            horaInicio: data.horaInicio,
+            fechaFin: data.fechaFin,
+            horaFin: data.horaFin
+        });
+
         await connection.beginTransaction();
 
         const [salas] = await connection.query(
@@ -52,6 +79,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
         );
 
         if ((salas as any[]).length === 0) {
+            await connection.rollback();
             throw new ValidationError(`La sala ${data.salaNumero} en ${data.salaUbicacion} no existe`);
         }
 
@@ -74,11 +102,12 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
         );
 
         if ((conflicts as any[]).length > 0) {
+            await connection.rollback();
             throw new ValidationError('La sala ya está reservada en el rango seleccionado');
         }
 
         const [result] = await connection.query(
-            'INSERT INTO Reserva (estudiante_id, sala_ubicacion, sala_numero, fechaInicio, fechaFin, horaInicio, horaFin, numPersonas, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ',
+            'INSERT INTO Reserva (estudiante_id, sala_ubicacion, sala_numero, fechaInicio, fechaFin, horaInicio, horaFin, numPersonas, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 data.estudianteId,
                 data.salaUbicacion,
@@ -92,11 +121,23 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
             ]
         );
 
-        await connection.commit();
+        const lastID = (result as any).lastID;
+        if (!lastID || lastID === 0) {
+            await connection.rollback();
+            throw new Error('Failed to insert reservation - no lastID returned');
+        }
 
-        return (result as any).lastID as number;
+        await connection.commit();
+        console.debug(`Reservation created successfully with ID: ${lastID}`);
+        
+        return lastID;
     } catch (error) {
-        await connection.rollback();
+        console.error('Error creating reservation:', error);
+        try {
+            await connection.rollback();
+        } catch (rollbackError) {
+            console.error('Error during rollback:', rollbackError);
+        }
         throw error;
     } finally {
         connection.release();
@@ -118,9 +159,11 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
         }
 
         await connection.query(
-            'UPDATE Reserva SET status = \'Cancelada\' WHERE id = ?',
-            [reservaId]
-        )
+            'UPDATE Reserva SET status = ? WHERE id = ?',
+            [ReservaStatus.CANCELADA, reservaId]
+        );
+        
+        console.debug(`Reservation ${reservaId} cancelled successfully`);
     }
     finally {
         connection.release()
@@ -135,51 +178,77 @@ async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
         return cachedQr;
     }
 
-    const qrCode = await QRCode.toDataURL(formatoQr, {
-        errorCorrectionLevel: "H",
-        type: 'image/png',
-        margin: 1,
-        scale: 10
-    });
-    qrCache.set(formatoQr, qrCode);
-
-    return qrCode;
+    try {
+        const qrCode = await QRCode.toDataURL(formatoQr, {
+            errorCorrectionLevel: "H",
+            type: 'image/png',
+            margin: 1,
+            scale: 10
+        });
+        qrCache.set(formatoQr, qrCode);
+        console.debug(`QR code created and cached for: ${formatoQr}`);
+        
+        return qrCode;
+    } catch (error) {
+        console.error('Error generating QR code:', { formatoQr, error });
+        throw error;
+    }
 }
 
 export async function generarQrCodeConId(reservaId: number, estudianteId: number, tipoUsuario: TipoUsuario, tipoQr: TipoQr): Promise<string> {
     const connection = await pool.getConnection();
 
-    const reservacion = await obtenerReservaConId(connection, reservaId);
+    try {
+        const reservacion = await obtenerReservaConId(connection, reservaId);
 
-    if (reservacion.status !== ReservaStatus.ACTIVA) {
+        if (reservacion.status !== ReservaStatus.ACTIVA) {
+            throw new ValidationError(`No se puede generar un QR para la reserva ${reservaId}. Se hizo la solicitud para una reserva ${reservacion.status}`)
+        }
+
+        if (estudianteId !== reservacion.estudiante_id && tipoUsuario !== 'personal') {
+            throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+        }
+
+        const qrCode = await crearQr(tipoQr, reservaId);
+        console.debug(`QR code generated for reservation ${reservaId}`);
+        
+        return qrCode;
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        throw error;
+    } finally {
         connection.release();
-        throw new ValidationError(`No se puede generar un QR para la reserva ${reservaId}. Se hizo la solicitud para una reserva ${reservacion.status}`)
     }
-
-    if (estudianteId !== reservacion.estudiante_id && tipoUsuario !== 'personal') {
-        connection.release();
-        throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
-    }
-
-    const qrCode = crearQr(tipoQr, reservaId);
-
-    connection.release();
-    return qrCode;
 }
 
 export async function reprogramarReservaConTransaccion(reservaId: number, estudianteId: number, data: CrearReservaRequest) {
     const connection = await pool.getConnection();
 
     try {
+        // Validate input formats before transaction
+        validateDateTimeFormat(data.fechaInicio, data.horaInicio);
+        validateDateTimeFormat(data.fechaFin, data.horaFin);
+        
+        console.debug('Rescheduling reservation:', {
+            reservaId,
+            estudianteId,
+            fechaInicio: data.fechaInicio,
+            horaInicio: data.horaInicio,
+            fechaFin: data.fechaFin,
+            horaFin: data.horaFin
+        });
+
         await connection.beginTransaction();
 
         const reservacion = await obtenerReservaConId(connection, reservaId);
 
         if (reservacion.estudiante_id != estudianteId) {
+            await connection.rollback();
             throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
         }
 
         if (reservacion.status != ReservaStatus.ACTIVA) {
+            await connection.rollback();
             throw new ValidationError(`No se pudo reprogramar la reserva ${reservaId}. La reserva está ${reservacion.status}`);
         }
 
@@ -189,6 +258,7 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         );
 
         if ((salas as any[]).length === 0) {
+            await connection.rollback();
             throw new ValidationError(`La sala ${data.salaNumero} en ${data.salaUbicacion} no existe`);
         }
 
@@ -196,8 +266,8 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
             `SELECT id FROM Reserva
                 WHERE sala_ubicacion = ? AND sala_numero = ? AND status = ? AND id != ?
                 AND NOT (
-                    TIMESTAMP(fechaFin, horaFin) <= TIMESTAMP(?, ?) OR
-                    TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
+                    datetime(fechaFin || 'T' || horaFin) <= datetime(? || 'T' || ?) OR
+                    datetime(fechaInicio || 'T' || horaInicio) >= datetime(? || 'T' || ?)
                 )`,
             [
                 data.salaUbicacion,
@@ -212,6 +282,7 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         );
 
         if ((conflicts as any[]).length > 0) {
+            await connection.rollback();
             throw new ValidationError('La sala ya está reservada en el rango seleccionado');
         }
 
@@ -230,8 +301,14 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         );
 
         await connection.commit();
+        console.debug(`Reservation ${reservaId} rescheduled successfully`);
     } catch (error) {
-        await connection.rollback();
+        console.error('Error rescheduling reservation:', error);
+        try {
+            await connection.rollback();
+        } catch (rollbackError) {
+            console.error('Error during rollback:', rollbackError);
+        }
         throw error;
     } finally {
         connection.release();
