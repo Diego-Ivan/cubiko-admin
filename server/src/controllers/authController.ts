@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
-import { hashPassword, verifyPassword, generateToken } from '../services/authService';
+import { hashPassword, verifyPassword, generateToken, verifyRefreshToken } from '../services/authService';
 import { validateRequest, registerSchema, registerPersonnelSchema, loginSchema } from '../utils/validators';
-import { EstudianteStatus, RegisterRequest, RegisterPersonnelRequest, LoginRequest, UnauthorizedError, ConflictError } from '../types';
+import { EstudianteStatus, RegisterRequest, RegisterPersonnelRequest, LoginRequest, RefreshTokenRequest, UnauthorizedError, ConflictError } from '../types';
 
 // ==================
 // Register Student
@@ -256,6 +256,46 @@ export async function loginPersonnel(req: Request, res: Response): Promise<void>
       });
     } else if (error instanceof Error) {
       res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  }
+}
+
+// ==================
+// Refresh Token
+// ==================
+export async function refreshToken(req: Request, res: Response): Promise<void> {
+  try {
+    const { refresh_token } = req.body as RefreshTokenRequest;
+    if (!refresh_token) {
+      throw new UnauthorizedError('Refresh token is required');
+    }
+
+    const payload = verifyRefreshToken(refresh_token);
+    
+    // We only need id, tipo, email, rol to generate a new token
+    const token = generateToken({
+      id: payload.id,
+      tipo: payload.tipo,
+      email: payload.email,
+      rol: payload.rol
+    });
+
+    res.status(200).json({
+      success: true,
+      data: token,
+      message: 'Token refreshed successfully'
+    });
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      res.status(401).json({
         success: false,
         error: error.message
       });

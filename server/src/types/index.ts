@@ -92,7 +92,12 @@ export interface JWTPayload {
 
 export interface TokenResponse {
   access_token: string;
+  refresh_token: string;
   expires_in: string;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
 }
 
 export interface RegisterRequest {

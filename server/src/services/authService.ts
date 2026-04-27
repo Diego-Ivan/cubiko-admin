@@ -20,17 +20,34 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 // ==================
 // JWT Token Management
 // ==================
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your_super_secret_refresh_key_change_this_in_production';
+const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
+
 export function generateToken(payload: JWTPayload): TokenResponse {
   const signOptions: SignOptions = {
     expiresIn: JWT_EXPIRY as any
   };
+  const refreshSignOptions: SignOptions = {
+    expiresIn: REFRESH_TOKEN_EXPIRY as any
+  };
   
   const token = jwt.sign(payload, JWT_SECRET, signOptions);
+  const refreshToken = jwt.sign(payload, REFRESH_TOKEN_SECRET, refreshSignOptions);
 
   return {
     access_token: token,
+    refresh_token: refreshToken,
     expires_in: JWT_EXPIRY
   };
+}
+
+export function verifyRefreshToken(token: string): JWTPayload {
+  try {
+    const decoded = jwt.verify(token, REFRESH_TOKEN_SECRET) as JWTPayload;
+    return decoded;
+  } catch (error) {
+    throw new UnauthorizedError('Invalid or expired refresh token');
+  }
 }
 
 export function verifyToken(token: string): JWTPayload {
