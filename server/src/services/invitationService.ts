@@ -80,13 +80,23 @@ export async function actualizarEstadoInvitacion(
   }
 }
 
+async function usuarioYaEnReserva(connection: PoolConnection, userId: number, reservaId: number) {
+  const conflictos = await connection.query("SELECT * FROM UsuarioEnReserva WHERE estudianteId = ? AND reservaId = ?", [userId, reservaId]);
+  return (conflictos as any[]).length > 0;
+}
+
 export async function aceptarInvitacionConQr(userId: number, reservaId: number) {
   const connection = await pool.getConnection();
   try {
     const reserva = await obtenerReservaConId(connection, reservaId);
     const conflicto = reservaToConflictoReservas(reserva);
+
     if (await invitacionTieneConflictos(connection, userId, conflicto)) {
       throw new ValidationError("Ya tienes una reserva a esta hora!")
+    }
+
+    if (await usuarioYaEnReserva(connection, userId, reservaId)) {
+      throw new ValidationError("Tú ya estás registrado en esta reserva");
     }
 
     await connection.query("INSERT INTO UsuarioEnReserva (estudianteId, reservaId) VALUES (?, ?)", [

@@ -39,7 +39,7 @@ export async function updateInvitationStatus(req: Request, res: Response) { /* s
 export async function aceptarInvitacionDeQr(req: Request, res: Response) {
   try {
     const reservaId = Number(req.params.reservaId); /*toma el ID, si esta en string lo convierte a numero*/
-    const userId = Number(req.params.userId); 
+    const userId = req.user?.id;
 
     if (!userId) {
       throw new UnauthorizedError(); /*si no esta autenticado, lanza un error*/

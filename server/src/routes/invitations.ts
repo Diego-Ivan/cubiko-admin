@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
-import { updateInvitationStatus } from '../controllers/invitationsController';
+import { updateInvitationStatus, aceptarInvitacionDeQr } from '../controllers/invitationsController';
 
 const router = Router();
 
@@ -8,5 +8,6 @@ const router = Router();
 router.use(authenticate);
 
 router.patch('/:id/status', updateInvitationStatus);
+router.put('/:reservaId/aceptarConQr', aceptarInvitacionDeQr);
 
 export default router;
