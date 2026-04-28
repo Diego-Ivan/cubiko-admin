@@ -68,6 +68,19 @@ function validateDateTimeFormat(fecha: string, hora: string): void {
     }
 }
 
+export async function activarReservaConId(reservaId: number) {
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.query(
+            'UPDATE Reserva SET status = ? WHERE id = ?',
+            [ReservaStatus.ACTIVA, reservaId]
+        );
+    } finally {
+        connection.release();
+    }
+}
+
 export async function crearReservaConTransaccion(data: CrearReservaRequest & { estudianteId: number }) {
     const connection = await pool.getConnection();
 

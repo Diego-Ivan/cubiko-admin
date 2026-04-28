@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema, terminarReservaSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante, terminarReservaConId, obtenerReservasInvitado } from '../services/reservaService';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante, terminarReservaConId, obtenerReservasInvitado, activarReservaConId } from '../services/reservaService';
 import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, TerminarReservaRequest, UnauthorizedError, ValidationError } from '../types';
 
 export async function crearReserva(req: Request, res: Response) {
@@ -264,6 +264,27 @@ export async function terminarReserva(req: Request, res: Response) {
       return;
     }
     await terminarReservaConId(reservaId, userId);
+  }
+  catch (error) {
+    if (error instanceof ApiError || error instanceof ValidationError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message
+        })
+      } else {
+        throw Error;
+      }
+  }
+}
+
+export async function activarReserva(req: Request, res: Response) {
+  try {
+    const reservaId = Number(req.params.reservaId);
+    await activarReservaConId(reservaId);
+    res.status(200).json({
+      success: true,
+      message: "Reservada activada con éxito"
+    })
   }
   catch (error) {
     if (error instanceof ApiError || error instanceof ValidationError) {
