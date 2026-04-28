@@ -41,7 +41,7 @@ export async function obtenerReservasDeEstudiante(estudianteId: number): Promise
 function validateDateTimeFormat(fecha: string, hora: string): void {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     const timeRegex = /^\d{2}:\d{2}$/;
-    
+
     if (!dateRegex.test(fecha)) {
         throw new ValidationError(`Formato de fecha inválido: ${fecha}. Use YYYY-MM-DD`);
     }
@@ -57,7 +57,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
         // Validate input formats before transaction
         validateDateTimeFormat(data.fechaInicio, data.horaInicio);
         validateDateTimeFormat(data.fechaFin, data.horaFin);
-        
+
         console.debug('Creating reservation:', {
             estudianteId: data.estudianteId,
             salaNumero: data.salaNumero,
@@ -126,7 +126,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
 
         await connection.commit();
         console.debug(`Reservation created successfully with ID: ${lastID}`);
-        
+
         return lastID;
     } catch (error) {
         console.error('Error creating reservation:', error);
@@ -151,7 +151,7 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
             throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
         }
 
-        if (reservacion.status != ReservaStatus.ACTIVA) {
+        if (reservacion.status != ReservaStatus.ACTIVA && reservacion.status != ReservaStatus.RESERVADA) {
             throw new ValidationError(`No se pudo cancelar la reserva ${reservaId}. Se hizo la solicitud para cancelar una reserva ${reservacion.status}`)
         }
 
@@ -159,7 +159,7 @@ export async function cancelarReservaConId(reservaId: number, estudianteId: numb
             'UPDATE Reserva SET status = ? WHERE id = ?',
             [ReservaStatus.CANCELADA, reservaId]
         );
-        
+
         console.debug(`Reservation ${reservaId} cancelled successfully`);
     }
     finally {
@@ -173,7 +173,7 @@ async function crearQr(tipo: TipoQr, reservaId: number): Promise<string> {
     try {
         const qrCode = await generateQRDataURL(formatoQr, 'svg');
         console.debug(`QR code created for: ${formatoQr}`);
-        
+
         return qrCode;
     } catch (error) {
         console.error('Error generating QR code:', { formatoQr, error });
@@ -187,7 +187,7 @@ export async function generarQrCodeConId(reservaId: number, estudianteId: number
     try {
         const reservacion = await obtenerReservaConId(connection, reservaId);
 
-        if (reservacion.status !== ReservaStatus.ACTIVA) {
+        if (reservacion.status !== ReservaStatus.ACTIVA && reservacion.status !== ReservaStatus.RESERVADA) {
             throw new ValidationError(`No se puede generar un QR para la reserva ${reservaId}. Se hizo la solicitud para una reserva ${reservacion.status}`)
         }
 
@@ -197,7 +197,7 @@ export async function generarQrCodeConId(reservaId: number, estudianteId: number
 
         const qrCode = await crearQr(tipoQr, reservaId);
         console.debug(`QR code generated for reservation ${reservaId}`);
-        
+
         return qrCode;
     } catch (error) {
         console.error('Error generating QR code:', error);
@@ -214,7 +214,7 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         // Validate input formats before transaction
         validateDateTimeFormat(data.fechaInicio, data.horaInicio);
         validateDateTimeFormat(data.fechaFin, data.horaFin);
-        
+
         console.debug('Rescheduling reservation:', {
             reservaId,
             estudianteId,
