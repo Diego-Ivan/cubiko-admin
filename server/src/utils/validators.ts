@@ -67,6 +67,10 @@ export const crearQrSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 
+export const aceptarInvitacionQrSchema = z.object({
+  reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
+});
+
 // Request
 export async function validateRequest<T>(schema: z.ZodSchema, data: unknown): Promise<T> {
   try {

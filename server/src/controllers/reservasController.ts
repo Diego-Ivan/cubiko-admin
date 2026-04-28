@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema, terminarReservaSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante, terminarReservaConId } from '../services/reservaService';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante, terminarReservaConId, obtenerReservasInvitado } from '../services/reservaService';
 import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, TerminarReservaRequest, UnauthorizedError, ValidationError } from '../types';
 
 export async function crearReserva(req: Request, res: Response) {
@@ -59,10 +59,11 @@ export async function obtenerMisReservas(req: Request, res: Response) {
     }
 
     const reservas = await obtenerReservasDeEstudiante(userId);
+    const reservasInvitado = await obtenerReservasInvitado(userId);
 
     res.status(200).json({
       success: true,
-      data: reservas
+      data: [...reservas, ...reservasInvitado]
     });
   } catch (error) {
     if (error instanceof ApiError) {

@@ -8,7 +8,7 @@ export enum TipoQr {
     Acceso = "acceso"
 }
 
-async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
+export async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
     const [resultado] = await connection.query(
         'SELECT * FROM Reserva WHERE id = ?',
         [reservaId]
@@ -28,6 +28,24 @@ export async function obtenerReservasDeEstudiante(estudianteId: number): Promise
     try {
         const [resultado] = await connection.query(
             'SELECT * FROM Reserva WHERE estudiante_id = ? ORDER BY fechaInicio DESC, horaInicio DESC',
+            [estudianteId]
+        );
+
+        return resultado as Reserva[];
+    } finally {
+        connection.release();
+    }
+}
+
+export async function obtenerReservasInvitado(estudianteId: number): Promise<Reserva[]> {
+    const connection = await pool.getConnection();
+
+    try {
+        const [resultado] = await connection.query(
+            `SELECT r.* FROM Reserva r
+             INNER JOIN UsuarioEnReserva u ON r.id = u.reservaId
+             WHERE u.estudianteId = ?
+             ORDER BY r.fechaInicio DESC, r.horaInicio DESC`,
             [estudianteId]
         );
 

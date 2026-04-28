@@ -114,6 +114,8 @@ CREATE TABLE IF NOT EXISTS SolicitudExtension (
     CHECK (extensionHoras <= 1.5)
 );
 
+CREATE TABLE IF NOT EXISTS UsuarioEnReserva (estudianteId INTEGER NOT NULL, reservaId INTEGER NOT NULL, FOREIGN KEY (estudianteId) REFERENCES Estudiante(id), FOREIGN KEY (reservaId) REFERENCES Reserva(id), PRIMARY KEY (reservaId, estudianteId));
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_estudiante_email ON Estudiante(email);
 CREATE INDEX IF NOT EXISTS idx_personal_email ON PersonalBiblioteca(email);
@@ -123,4 +125,4 @@ CREATE INDEX IF NOT EXISTS idx_prestamo_estudiante ON PrestamoMaterial(estudiant
 CREATE INDEX IF NOT EXISTS idx_extension_reserva ON SolicitudExtension(reserva_id);
 CREATE INDEX IF NOT EXISTS idx_extension_estado ON SolicitudExtension(estado);
 
-INSERT INTO `Sala` VALUES (1,'1',6,3),(2,'1',6,3),(3,'1',6,3),(4,'1',6,3),(5,'1',6,3),(6,'1',6,3),(7,'1',6,3),(8,'1',6,3),(9,'1',6,3),(10,'1',6,3),(11,'1',6,3),(12,'1',6,3),(13,'1',6,3),(14,'1',6,3);
+-- sINSERT INTO `Sala` VALUES (1,'1',6,3),(2,'1',6,3),(3,'1',6,3),(4,'1',6,3),(5,'1',6,3),(6,'1',6,3),(7,'1',6,3),(8,'1',6,3),(9,'1',6,3),(10,'1',6,3),(11,'1',6,3),(12,'1',6,3),(13,'1',6,3),(14,'1',6,3);
