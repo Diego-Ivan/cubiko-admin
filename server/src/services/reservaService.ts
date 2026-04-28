@@ -114,7 +114,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
                 data.horaInicio,
                 data.horaFin,
                 data.numPersonas ?? null,
-                ReservaStatus.ACTIVA
+                ReservaStatus.RESERVADA
             ]
         );
 
