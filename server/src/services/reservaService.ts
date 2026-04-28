@@ -300,3 +300,65 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         connection.release();
     }
 }
+
+export async function obtenerTodasLasReservas(): Promise<any[]> {
+    const connection = await pool.getConnection();
+    try {
+        const [resultado] = await connection.query(`
+            SELECT r.*, e.nombre as estudiante_nombre, e.email as estudiante_email 
+            FROM Reserva r
+            LEFT JOIN Estudiante e ON r.estudiante_id = e.id
+            ORDER BY r.fechaInicio DESC, r.horaInicio DESC
+        `);
+        return resultado as any[];
+    } finally {
+        connection.release();
+    }
+}
+
+export async function obtenerTodasLasSolicitudesExtension(): Promise<any[]> {
+    const connection = await pool.getConnection();
+    try {
+        const [resultado] = await connection.query(`
+            SELECT se.*, r.sala_ubicacion, r.sala_numero, r.fechaInicio, r.horaInicio, r.fechaFin, r.horaFin, e.nombre as estudiante_nombre
+            FROM SolicitudExtension se
+            JOIN Reserva r ON se.reserva_id = r.id
+            LEFT JOIN Estudiante e ON r.estudiante_id = e.id
+            ORDER BY se.id DESC
+        `);
+        return resultado as any[];
+    } finally {
+        connection.release();
+    }
+}
+
+export async function resolverExtension(requestId: number, newStatus: 'Aprobada' | 'Rechazada') {
+    const connection = await pool.getConnection();
+    try {
+        const [requestResult] = await connection.query(
+            'SELECT * FROM SolicitudExtension WHERE id = ?',
+            [requestId]
+        );
+        const requests = requestResult as any[];
+        if (requests.length === 0) {
+            throw new NotFoundError(`Request with id ${requestId} not found`);
+        }
+        const request = requests[0];
+        if (request.estado !== 'Pendiente') {
+            throw new ValidationError(`La solicitud ${requestId} ya fue resuelta`);
+        }
+        await connection.query(
+            'UPDATE SolicitudExtension SET estado = ? WHERE id = ?',
+            [newStatus, requestId]
+        );
+        if (newStatus === 'Aprobada') {
+            await connection.query(
+                'UPDATE Reserva SET horaFin = ADDTIME(horaFin, SEC_TO_TIME(? * 3600)) WHERE id = ?',
+                [request.extensionHoras, request.reserva_id]
+            );
+        }
+        return request;
+    } finally {
+        connection.release();
+    }
+}

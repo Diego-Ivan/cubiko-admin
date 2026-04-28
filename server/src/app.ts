@@ -29,7 +29,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/reservas', reservasRoutes)
-//app.use('/api/invitations', invitationsRoutes)
+// app.use('/api/invitations', invitationsRoutes) // Add if exists
 app.use('/api/estudiantes', estudiantesRoutes);
 
 // 404 handler
