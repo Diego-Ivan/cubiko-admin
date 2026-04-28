@@ -29,7 +29,7 @@ export async function registerStudent(req: Request, res: Response): Promise<void
 
       // Insert student
       const [result] = await connection.query(
-        'INSERT INTO Estudiante (nombre, email, password_hash, status, bloqueado, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+        'INSERT INTO Estudiante (nombre, email, password_hash, status, bloqueado, created_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
         [body.nombre, body.email, passwordHash, body.status || EstudianteStatus.ACTIVO, false]
       );
 
@@ -160,7 +160,7 @@ export async function registerPersonnel(req: Request, res: Response): Promise<vo
 
       // Insert personnel
       const [result] = await connection.query(
-        'INSERT INTO PersonalBiblioteca (nombre, email, password_hash, rol, created_at) VALUES (?, ?, ?, ?, NOW())',
+        'INSERT INTO PersonalBiblioteca (nombre, email, password_hash, rol, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
         [body.nombre, body.email, passwordHash, body.rol]
       );
 

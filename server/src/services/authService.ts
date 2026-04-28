@@ -1,5 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { JWTPayload, TokenResponse, UnauthorizedError } from '../types';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_this_in_production';
@@ -24,7 +24,7 @@ export function generateToken(payload: JWTPayload): TokenResponse {
   const signOptions: SignOptions = {
     expiresIn: JWT_EXPIRY as any
   };
-  
+
   const token = jwt.sign(payload, JWT_SECRET, signOptions);
 
   return {

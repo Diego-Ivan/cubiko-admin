@@ -95,8 +95,8 @@ export async function getUsedRooms(): Promise<(Sala & { reserva_id: number; estu
       FROM Sala s
       INNER JOIN Reserva r ON s.ubicacion = r.sala_ubicacion AND s.numero = r.sala_numero
       WHERE r.status = 'Activa'
-      AND r.fechaInicio <= CURDATE()
-      AND r.fechaFin >= CURDATE()
+      AND r.fechaInicio <= date('now')
+      AND r.fechaFin >= date('now')
       ORDER BY s.ubicacion, s.numero
     `);
 

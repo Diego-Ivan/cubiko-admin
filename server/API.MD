@@ -167,6 +167,19 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
 - **Respuesta**: Documento `JSON`:
   - `200`: La solicitud se completó satisfactoriamente:
   - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: Operación prohibida. Vea el mensaje del error.
+
+### Obtener Mis Reservas
+
+- **Endpoint**: `/api/reservas/mis-reservas`
+- **Tipo de Request**: `GET`
+- **Parámetros**: Ninguno
+- **Cuerpo de la Request**: Ninguno
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+    - `data`: Arreglo de reservaciones del estudiante autenticado.
   - `401`: Operación no autorizada. Vea el mensaje del error.
 
 ### Extender Reservación
@@ -207,3 +220,46 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
   - `401`: Operación no autorizada. Vea el mensaje del error.
   - `403`: Solo el personal de la biblioteca puede resolver solicitudes.
   - `404`: No se encontró la solicitud de extensión.
+
+### Reprogramar Reservación
+
+- **Endpoint**: `/api/reservas/{id}/reschedule`
+- **Tipo de Request**: `PUT`
+- **Parámetros**:
+  - `id`: ID de la reserva a reprogramar.
+- **Cuerpo de la Request**: Documento `JSON`:
+  - `salaNumero`: `number`
+  - `salaUbicacion`: `string`
+  - `fechaInicio`: `string` (Formato YYYY-MM-DD)
+  - `horaInicio`: `string` (Formato HH:MM)
+  - `fechaFin`: `string` (Formato YYYY-MM-DD)
+  - `horaFin`: `string` (Formato HH:MM)
+  - `numPersonas`?: `number`
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+  - `400`: Error de validación (por ejemplo, si la sala no existe o hay conflicto de horario).
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: Operación prohibida si la reserva no pertenece al estudiante.
+
+## Invitaciones
+
+### Actualizar estado de invitación
+
+- **Endpoint**: `/api/invitations/{id}/status`
+- **Tipo de Request**: `PATCH`
+- **Parámetros**:
+  - `id`: `int` — ID de la invitación a actualizar
+- **Cuerpo de la Request**: Documento `JSON`:
+  - `status`: `"aceptada" | "rechazada"`
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+    - `success`: Si la operación tuvo éxito.
+    - `message`: Mensaje con información adicional
+  - `400`: Error de validación (estado inválido o conflicto de horario)
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: No tiene permisos para modificar esta invitación.
+  - `404`: Invitación no encontrada.
