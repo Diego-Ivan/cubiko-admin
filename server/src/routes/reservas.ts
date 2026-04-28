@@ -11,6 +11,7 @@ router.patch('/:reservaId/cancel', cancelarReserva)
 router.put('/:reservaId/reschedule', reprogramarReserva)
 router.get('/:reservaId/qrCode/invite', generarQrCodeInvitacion)
 router.get('/:reservaId/qrCode/acceso', generarQrCodeAcceso)
+router.get('/:reservaId/terminar')
 router.get('/mis-reservas', obtenerMisReservas)
 
 router.put('/create', crearReserva)

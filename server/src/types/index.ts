@@ -145,6 +145,10 @@ export interface CrearQrRequest {
   reservaId: number;
 }
 
+export interface TerminarReservaRequest {
+  reservaId: number;
+}
+
 
 // Respuesta de la API
 

@@ -300,3 +300,29 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         connection.release();
     }
 }
+
+export async function terminarReservaConId(reservaId: number, estudianteId: number) {
+    const connection = await pool.getConnection();
+
+    try {
+        const reservacion = await obtenerReservaConId(connection, reservaId);
+
+        if (reservacion.estudiante_id != estudianteId) {
+            throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+        }
+
+        if (reservacion.status != ReservaStatus.ACTIVA && reservacion.status != ReservaStatus.RESERVADA) {
+            throw new ValidationError(`No se pudo cancelar la reserva ${reservaId}. Se hizo la solicitud para cancelar una reserva ${reservacion.status}`)
+        }
+
+        await connection.query(
+            'UPDATE Reserva SET status = ? WHERE id = ?',
+            [ReservaStatus.COMPLETADA, reservaId]
+        );
+
+        console.debug(`Reservation ${reservaId} cancelled successfully`);
+    }
+    finally {
+        connection.release()
+    }
+}
