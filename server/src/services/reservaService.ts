@@ -187,7 +187,7 @@ export async function generarQrCodeConId(reservaId: number, estudianteId: number
     try {
         const reservacion = await obtenerReservaConId(connection, reservaId);
 
-        if (reservacion.status !== ReservaStatus.ACTIVA) {
+        if (reservacion.status !== ReservaStatus.ACTIVA && reservacion.status !== ReservaStatus.RESERVADA) {
             throw new ValidationError(`No se puede generar un QR para la reserva ${reservaId}. Se hizo la solicitud para una reserva ${reservacion.status}`)
         }
 
