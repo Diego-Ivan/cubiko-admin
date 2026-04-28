@@ -1,26 +1,17 @@
-import winston from 'winston';
-import morgan from 'morgan';
+import { Request, Response, NextFunction } from 'express';
 
-const { combine, timestamp, json } = winston.format;
+const morganMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const contentLength = res.get('content-length') || '-';
+    // Matches the previously configured morgan format:
+    // :method :url :status :res[content-length] - :response-time ms
+    console.log(`${req.method} ${req.originalUrl || req.url} ${res.statusCode} ${contentLength} - ${duration} ms`);
+  });
 
-const logger = winston.createLogger({
-  level: 'http',
-  format: combine(
-    timestamp({
-      format: 'YYYY-MM-DD hh:mm:ss.SSS A',
-    }),
-    json(),
-  ),
-  transports: [new winston.transports.Console(), new winston.transports.File({filename: 'combined.log'})],
-});
-
-const morganMiddleware = morgan(
-  ':method :url :status :res[content-length] - :response-time ms',
-  {
-    stream: {
-      write: (message) => logger.http(message.trim()),
-    },
-  },
-);
+  next();
+};
 
 export default morganMiddleware;

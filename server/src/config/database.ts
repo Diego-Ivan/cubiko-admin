@@ -1,17 +1,18 @@
-import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { Pool, createPoolFromD1 } from '../utils/d1Adapter';
 
 dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_NAME || 'biblioteca',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+let pool: Pool;
+
+// Check if we're in a Workers environment (D1 is available in context)
+if (typeof globalThis !== 'undefined' && (globalThis as any).DB) {
+  // Production or Local Wrangler: Using Cloudflare D1
+  pool = createPoolFromD1((globalThis as any).DB);
+  console.log('Database: Using Cloudflare D1');
+} else {
+  // Gracefully enforce Wrangler
+  throw new Error('D1 database binding not found. Please run the application using `npm run dev:worker` to ensure the Cloudflare Workers environment and D1 are properly injected.');
+}
 
 export default pool;
