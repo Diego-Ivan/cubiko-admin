@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
-import { cancelarReserva, crearReserva, generarQrCodeInvitacion, generarQrCodeAcceso, reprogramarReserva, obtenerMisReservas } from '../controllers/reservasController'
+import { cancelarReserva, crearReserva, generarQrCodeInvitacion, generarQrCodeAcceso, reprogramarReserva, obtenerMisReservas, extenderReserva, adminResolverExtension } from '../controllers/reservasController'
+
 
 const router = Router();
 
@@ -8,6 +9,8 @@ const router = Router();
 router.use(authenticate);
 
 router.patch('/:reservaId/cancel', cancelarReserva)
+router.patch('/:reservaId/extend', extenderReserva)
+router.patch('/extensions/:requestId/resolve', adminResolverExtension)
 router.put('/:reservaId/reschedule', reprogramarReserva)
 router.get('/:reservaId/qrCode/invite', generarQrCodeInvitacion)
 router.get('/:reservaId/qrCode/acceso', generarQrCodeAcceso)

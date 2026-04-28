@@ -59,6 +59,22 @@ export const cancelarReservaSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 
+// Parámetros de extender reserva
+export const extenderReservaParamSchema = z.object({
+  reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
+});
+
+// Extender reserva
+export const extenderReservaBodySchema = z.object({
+  extensionHoras: z.number().int('Extension must be a whole number of hours').positive('Extension must be a positive number').optional().default(1)
+});
+
+// Resolver extensión
+export const resolverExtensionSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED'])
+});
+
+
 export const crearQrSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });

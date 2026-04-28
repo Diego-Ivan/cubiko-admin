@@ -25,7 +25,7 @@ El token `access_token` podrá ser utilizado por los usuarios de la API para rea
 - **Tipo de Request**: `POST`
 - **Parámetros**: Ninguno
 - **Cuerpo de la Request**: Documento `JSON`:
-  - `name`: `string`
+  - `nombre`: `string`
   - `email`: `string`
   - `password`: `string`
   - `status`?: `"Activo" | "Inactivo" | "Egresado"` (default: `"Activo"`)
@@ -61,7 +61,7 @@ El token `access_token` podrá ser utilizado por los usuarios de la API para rea
 - **Tipo de Request**: `POST`
 - **Parámetros**: Ninguno
 - **Cuerpo de la Request**: Documento `JSON`:
-  - `name`: `string`
+  - `nombre`: `string`
   - `email`: `string`
   - `password`: `string`
   - `rol`?: `"Bibliotecario" | "Admin"`
@@ -181,6 +181,45 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
   - `200`: La solicitud se completó satisfactoriamente:
     - `data`: Arreglo de reservaciones del estudiante autenticado.
   - `401`: Operación no autorizada. Vea el mensaje del error.
+
+### Extender Reservación
+
+- **Endpoint**: `/api/reservas/{id}/extend`
+- **Tipo de Request**: `PATCH`
+- **Parámetros**: Ninguno
+- **Cuerpo de la Request**: Documento `JSON` (opcional):
+  - `extensionHoras`: `decimal` (Cantidad de horas a extender la reserva, máximo `1.5`, el por defecto es `1`)
+  - `notas`: `string` (opcional)
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}` (Estudiante)
+- **Respuesta**: Documento `JSON`:
+  - `201`: La solicitud se completó satisfactoriamente:
+    - `success`: `true`
+    - `message`: `La solicitud de extensión ha sido enviada con éxito`
+    - `data`: Objeto con los datos de la solicitud.
+  - `400`: Error de validación o el usuario es incorrecto.
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: Reservación no pertenece al estudiante.
+  - `404`: No se encontró la reserva.
+
+### Resolver Extensión
+
+- **Endpoint**: `/api/reservas/extensions/{requestId}/resolve`
+- **Tipo de Request**: `PATCH`
+- **Parámetros**: Ninguno
+- **Cuerpo de la Request**: Documento `JSON`:
+  - `status`: `"Aprobada" | "Rechazada"`
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}` (Personal)
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud fue resuelta exitosamente:
+    - `success`: `true`
+    - `message`: `La solicitud fue {status} exitosamente.`
+    - `data`: Objeto con los datos de la solicitud.
+  - `400`: Error de validación o ID de la solicitud inválido.
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: Solo el personal de la biblioteca puede resolver solicitudes.
+  - `404`: No se encontró la solicitud de extensión.
 
 ### Reprogramar Reservación
 

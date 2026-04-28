@@ -5,6 +5,7 @@
 // It adapts the Express app to work with the Workers fetch API
 
 import type { D1Binding } from './utils/d1Adapter';
+import { initializeSocket } from './socket/socketHandler';
 
 // Extend global scope to include D1 binding
 declare global {
@@ -32,9 +33,11 @@ export interface Env {
   DB: D1Binding;
   ENVIRONMENT?: string;
   DB_ENV?: string;
+  RESERVAS_WEBSOCKET_DO?: any;
 }
 
 let app: any;
+let socketInitialized = false;
 
 /**
  * Initialize Express app with D1 binding injected
@@ -49,6 +52,16 @@ async function initializeApp(db: D1Binding) {
 }
 
 /**
+ * Initialize socket handler for WebSocket notifications
+ */
+async function initializeSocketHandler(env: Env) {
+  if (!socketInitialized) {
+    await initializeSocket(env);
+    socketInitialized = true;
+  }
+}
+
+/**
  * Main fetch handler for Workers
  */
 export default {
@@ -59,26 +72,22 @@ export default {
         app = await initializeApp(env.DB);
       }
 
-      // Create a mock Node.js req/res for Express
-      // We'll use a library approach: convert fetch request to Express-compatible request
+      // Initialize socket handler on first request
+      if (!socketInitialized) {
+        await initializeSocketHandler(env);
+      }
 
-      // For now, use a simple approach: delegate to fetch event listener
-      // This requires using the nodejs_compat compatibility flag in wrangler.toml
+      // Check for WebSocket upgrade request
+      if (
+        request.headers.get('Upgrade') === 'websocket' &&
+        request.url.includes('/api/reservas/ws')
+      ) {
+        return handleWebSocketUpgrade(request, env);
+      }
 
-      // Alternative: use a proper adapter library
-      // For production, consider using one of these:
-      // - itty-router + manual routing
-      // - cf-request-adapter
-      // - express-on-workers
-
-      // Simple delegation using Node.js compatibility mode
+      // Handle regular HTTP requests
       const url = new URL(request.url);
-
-      // Simpler approach: parse request and delegate to Express routes
-
       const pathname = url.pathname;
-      // Re-export handling using the fetch event
-      // Since Express expects Node.js request/response, we simulate them
       return handleRequest(request, app, pathname);
 
     } catch (error) {
@@ -97,6 +106,32 @@ export default {
     }
   }
 };
+
+/**
+ * Handle WebSocket upgrade requests by routing to Durable Object
+ */
+function handleWebSocketUpgrade(request: Request, env: Env): Response {
+  if (!env.RESERVAS_WEBSOCKET_DO) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'WebSocket service not available'
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+
+  // Get Durable Object instance
+  const doNamespace = env.RESERVAS_WEBSOCKET_DO;
+  const id = doNamespace.idFromName('reservas-notifications');
+  const stub = doNamespace.get(id);
+
+  // Delegate WebSocket upgrade to Durable Object
+  return stub.fetch(request);
+}
 
 /**
  * Handle incoming requests by delegating to Express app
@@ -129,3 +164,9 @@ async function handleRequest(request: Request, app: any, _pathname: string): Pro
     });
   });
 }
+
+/**
+ * Export Durable Object class
+ * Cloudflare Workers requires this export to instantiate the DO
+ */
+export { ReservasWebSocketDO } from './websocket/reservasWebSocketDO';
