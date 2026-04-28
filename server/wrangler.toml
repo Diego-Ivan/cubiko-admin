@@ -6,6 +6,12 @@ account_id = "8ada90187b0ee7f8bc7efe845563b192"
 # Compatibility flags
 compatibility_flags = ["nodejs_compat"]
 
+# Durable Objects binding for WebSocket notifications
+[[durable_objects.bindings]]
+name = "RESERVAS_WEBSOCKET_DO"
+class_name = "ReservasWebSocketDO"
+script_name = "cubiko_api"
+
 # Default D1 binding for local development
 [[d1_databases]]
 binding = "DB"

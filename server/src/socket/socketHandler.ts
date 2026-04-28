@@ -1,67 +1,84 @@
-import { Server as SocketIOServer, Socket } from 'socket.io';
-import { Server as HttpServer } from 'http';
-import jwt from 'jsonwebtoken';
-import { JWTPayload } from '../types';
+/**
+ * Socket Handler for Cloudflare Workers + Durable Objects
+ * Replaces Socket.io with WebSocket connections managed by Durable Objects
+ */
 
-let io: SocketIOServer;
+let doStub: any; // Stub for accessing the Durable Object
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret'; // Normally pulled from env
+/**
+ * Initialize socket handler with Durable Object binding
+ * Called once at worker startup to set up notification routing
+ */
+export async function initializeSocket(env: any) {
+  // Get reference to the Durable Object namespace
+  const doNamespace = env.RESERVAS_WEBSOCKET_DO;
+  
+  if (!doNamespace) {
+    console.warn(
+      '[Socket] Durable Object binding not found. WebSocket notifications will be unavailable.'
+    );
+    return;
+  }
 
-export function initializeSocket(server: HttpServer) {
-  io = new SocketIOServer(server, {
-    cors: {
-      origin: '*', // Adjust based on your CORS policy
-      methods: ["GET", "POST", "PATCH"]
-    }
-  });
-
-  io.use((socket, next) => {
-    // Authenticate the socket via token provided in handshake auth
-    const token = socket.handshake.auth?.token as string;
-    
-    if (!token) {
-      return next(new Error('Authentication error: Token is required'));
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-      socket.data.user = decoded;
-      next();
-    } catch (err) {
-      next(new Error('Authentication error: Invalid token'));
-    }
-  });
-
-  io.on('connection', (socket: Socket) => {
-    const user = socket.data.user as JWTPayload;
-
-    console.log(`User connected: ${user.email} (Type: ${user.tipo}) - Socket ID: ${socket.id}`);
-
-    // Allow admins to join an 'admins' room
-    if (user.tipo === 'personal') {
-      socket.join('admins');
-      console.log(`Admin ${user.email} joined admins room`);
-    }
-
-    socket.on('disconnect', () => {
-      console.log(`User disconnected: ${user.email}`);
-    });
-  });
+  // Use a deterministic ID for the singleton Durable Object instance
+  // All notification calls will route through this instance
+  const id = doNamespace.idFromName('reservas-notifications');
+  doStub = doNamespace.get(id);
+  
+  console.log('[Socket] Initialized Durable Object stub for notifications');
 }
 
-// Function to broadcast new extension requests to all connected admins
-export function notifyAdminsNewExtension(requestData: any) {
-  if (io) {
-    io.to('admins').emit('new_extension_request', requestData);
+/**
+ * Broadcast new extension request to all connected admins
+ * Delegates to Durable Object to handle WebSocket broadcast
+ */
+export async function notifyAdminsNewExtension(requestData: any) {
+  if (!doStub) {
+    console.warn(
+      '[Socket] Durable Object not initialized. Extension notification not sent.'
+    );
+    return;
+  }
+
+  try {
+    const response = await doStub.fetch(new Request('https://do.local/notify-admins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestData })
+    }));
+    
+    const result = await response.json();
+    console.log('[Socket] Admin notification sent:', result);
+  } catch (err) {
+    console.error('[Socket] Failed to send admin notification:', err);
   }
 }
 
-// Function to notify a specific user (student) that their request was updated
-// Because users might not be easily queryable by ID in sockets unless we track them,
-// We could emit globally and the client filters, or we keep track of socket map.
-// For simplicity, we emit a global event that clients can filter by their student ID.
-export function notifyExtensionResolved(estudianteId: number, requestData: any) {
-  if (io) {
-    io.emit('extension_resolved', { estudianteId, requestData });
+/**
+ * Notify students about extension resolution
+ * Delegates to Durable Object to handle WebSocket broadcast
+ */
+export async function notifyExtensionResolved(
+  estudianteId: number,
+  requestData: any
+) {
+  if (!doStub) {
+    console.warn(
+      '[Socket] Durable Object not initialized. Resolution notification not sent.'
+    );
+    return;
+  }
+
+  try {
+    const response = await doStub.fetch(new Request('https://do.local/notify-students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estudianteId, requestData })
+    }));
+    
+    const result = await response.json();
+    console.log('[Socket] Student notification sent:', result);
+  } catch (err) {
+    console.error('[Socket] Failed to send student notification:', err);
   }
 }
