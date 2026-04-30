@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 
-import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema } from '../utils/validators';
-import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante } from '../services/reservaService';
-import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, UnauthorizedError, ValidationError } from '../types';
+import { validateRequest, cancelarReservaSchema, crearReservaSchema, crearQrSchema, terminarReservaSchema } from '../utils/validators';
+import { cancelarReservaConId, crearReservaConTransaccion, generarQrCodeConId, TipoQr, reprogramarReservaConTransaccion, obtenerReservasDeEstudiante, terminarReservaConId, obtenerReservasInvitado, activarReservaConId } from '../services/reservaService';
+import { ApiError, CancelarReservaRequest, CrearQrRequest, CrearReservaRequest, ForbiddenError, TerminarReservaRequest, UnauthorizedError, ValidationError } from '../types';
 
 export async function crearReserva(req: Request, res: Response) {
   try {
@@ -59,10 +59,11 @@ export async function obtenerMisReservas(req: Request, res: Response) {
     }
 
     const reservas = await obtenerReservasDeEstudiante(userId);
+    const reservasInvitado = await obtenerReservasInvitado(userId);
 
     res.status(200).json({
       success: true,
-      data: reservas
+      data: [...reservas, ...reservasInvitado]
     });
   } catch (error) {
     if (error instanceof ApiError) {
@@ -241,5 +242,58 @@ export async function generarQrCodeAcceso(req: Request, res: Response) {
     } else {
       throw Error;
     }
+  }
+}
+
+export async function terminarReserva(req: Request, res: Response) {
+  try {
+    const solicitud = await validateRequest<TerminarReservaRequest>(
+      terminarReservaSchema,
+      { reservaId: req.params.reservaId }
+    );
+
+    const reservaId = Number(solicitud.reservaId);
+    const userId = req.user?.id;
+    const tipoUsuario = req.user?.tipo;
+
+    if (!userId || !tipoUsuario) {
+      res.status(401).json({
+        success: false,
+        error: "Unauthorized"
+      })
+      return;
+    }
+    await terminarReservaConId(reservaId, userId);
+  }
+  catch (error) {
+    if (error instanceof ApiError || error instanceof ValidationError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message
+        })
+      } else {
+        throw Error;
+      }
+  }
+}
+
+export async function activarReserva(req: Request, res: Response) {
+  try {
+    const reservaId = Number(req.params.reservaId);
+    await activarReservaConId(reservaId);
+    res.status(200).json({
+      success: true,
+      message: "Reservada activada con éxito"
+    })
+  }
+  catch (error) {
+    if (error instanceof ApiError || error instanceof ValidationError) {
+        res.status(error.statusCode).json({
+          success: false,
+          message: error.message
+        })
+      } else {
+        throw Error;
+      }
   }
 }

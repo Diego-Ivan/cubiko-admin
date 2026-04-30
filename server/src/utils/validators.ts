@@ -59,7 +59,15 @@ export const cancelarReservaSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 
+export const terminarReservaSchema = z.object({
+  reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
+});
+
 export const crearQrSchema = z.object({
+  reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
+});
+
+export const aceptarInvitacionQrSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 

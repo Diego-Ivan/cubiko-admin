@@ -8,7 +8,7 @@ export enum TipoQr {
     Acceso = "acceso"
 }
 
-async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
+export async function obtenerReservaConId(connection: PoolConnection, reservaId: number) {
     const [resultado] = await connection.query(
         'SELECT * FROM Reserva WHERE id = ?',
         [reservaId]
@@ -37,6 +37,24 @@ export async function obtenerReservasDeEstudiante(estudianteId: number): Promise
     }
 }
 
+export async function obtenerReservasInvitado(estudianteId: number): Promise<Reserva[]> {
+    const connection = await pool.getConnection();
+
+    try {
+        const [resultado] = await connection.query(
+            `SELECT r.* FROM Reserva r
+             INNER JOIN UsuarioEnReserva u ON r.id = u.reservaId
+             WHERE u.estudianteId = ?
+             ORDER BY r.fechaInicio DESC, r.horaInicio DESC`,
+            [estudianteId]
+        );
+
+        return resultado as Reserva[];
+    } finally {
+        connection.release();
+    }
+}
+
 // Helper function to validate date/time format
 function validateDateTimeFormat(fecha: string, hora: string): void {
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -47,6 +65,19 @@ function validateDateTimeFormat(fecha: string, hora: string): void {
     }
     if (!timeRegex.test(hora)) {
         throw new ValidationError(`Formato de hora inválido: ${hora}. Use HH:MM`);
+    }
+}
+
+export async function activarReservaConId(reservaId: number) {
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.query(
+            'UPDATE Reserva SET status = ? WHERE id = ?',
+            [ReservaStatus.ACTIVA, reservaId]
+        );
+    } finally {
+        connection.release();
     }
 }
 
@@ -298,5 +329,31 @@ export async function reprogramarReservaConTransaccion(reservaId: number, estudi
         throw error;
     } finally {
         connection.release();
+    }
+}
+
+export async function terminarReservaConId(reservaId: number, estudianteId: number) {
+    const connection = await pool.getConnection();
+
+    try {
+        const reservacion = await obtenerReservaConId(connection, reservaId);
+
+        if (reservacion.estudiante_id != estudianteId) {
+            throw new ForbiddenError(`La reservación con id ${reservaId} no pertenece al estudiante ${estudianteId}`);
+        }
+
+        if (reservacion.status != ReservaStatus.ACTIVA && reservacion.status != ReservaStatus.RESERVADA) {
+            throw new ValidationError(`No se pudo cancelar la reserva ${reservaId}. Se hizo la solicitud para cancelar una reserva ${reservacion.status}`)
+        }
+
+        await connection.query(
+            'UPDATE Reserva SET status = ? WHERE id = ?',
+            [ReservaStatus.COMPLETADA, reservaId]
+        );
+
+        console.debug(`Reservation ${reservaId} cancelled successfully`);
+    }
+    finally {
+        connection.release()
     }
 }

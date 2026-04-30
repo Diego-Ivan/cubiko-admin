@@ -13,6 +13,12 @@ export enum PersonalRol {
   ADMIN = 'Admin'
 }
 
+export enum InvitacionStatus {
+  ACEPTADA = 'aceptada',
+  RECHAZADA = 'rechazada',
+  PENDIENTE = 'pendiente'
+}
+
 export type TipoUsuario = 'estudiante' | 'personal';
 
 export interface Estudiante {
@@ -145,6 +151,23 @@ export interface CrearQrRequest {
   reservaId: number;
 }
 
+export interface TerminarReservaRequest {
+  reservaId: number;
+}
+
+export interface Invitacion {
+  id: number;
+  estudiante_id: number;
+  status: InvitacionStatus;
+  fechaInicio: string;
+  fechaFin: string;
+  horaInicio: string;
+  horaFin: string;
+}
+
+export interface AceptarInvitacionQrRequest {
+  reservaId: number;
+}
 
 // Respuesta de la API
 
