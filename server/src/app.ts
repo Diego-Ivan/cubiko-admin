@@ -10,6 +10,7 @@ import invitationsRoutes from './routes/invitations';
 import morganMiddleware from './middleware/morgan';
 import estudiantesRoutes from './routes/estudiantes';
 import qrInvitations from './routes/qrInvitations';
+import estudiantes from './routes/estudiantes';
 
 const app: Express = express();
 
@@ -34,6 +35,7 @@ app.use('/api/reservas', reservasRoutes)
 app.use('/api/invitations', invitationsRoutes)
 app.use('/api/estudiantes', estudiantesRoutes);
 app.use('/api/qrInvitaciones', qrInvitations);
+app.use('/api/estudiantes', estudiantes)
 
 // 404 handler
 app.use((_req, res) => {
