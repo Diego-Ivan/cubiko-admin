@@ -81,7 +81,8 @@ export async function actualizarEstadoInvitacion(
 }
 
 async function usuarioYaEnReserva(connection: PoolConnection, userId: number, reservaId: number) {
-  const conflictos = await connection.query("SELECT * FROM UsuarioEnReserva WHERE estudianteId = ? AND reservaId = ?", [userId, reservaId]);
+  const [conflictos] = await connection.query("SELECT 1 FROM UsuarioEnReserva WHERE (estudianteId = ? AND reservaId = ?)", [userId, reservaId]);
+  console.log(conflictos);
   return (conflictos as any[]).length > 0;
 }
 
