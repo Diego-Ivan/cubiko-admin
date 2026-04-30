@@ -186,7 +186,7 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
 
 - **Endpoint**: `/api/reservas/{id}/reschedule`
 - **Tipo de Request**: `PUT`
-- **Parámetros**: 
+- **Parámetros**:
   - `id`: ID de la reserva a reprogramar.
 - **Cuerpo de la Request**: Documento `JSON`:
   - `salaNumero`: `number`
@@ -203,3 +203,24 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
   - `400`: Error de validación (por ejemplo, si la sala no existe o hay conflicto de horario).
   - `401`: Operación no autorizada. Vea el mensaje del error.
   - `403`: Operación prohibida si la reserva no pertenece al estudiante.
+
+## Invitaciones
+
+### Actualizar estado de invitación
+
+- **Endpoint**: `/api/invitations/{id}/status`
+- **Tipo de Request**: `PATCH`
+- **Parámetros**:
+  - `id`: `int` — ID de la invitación a actualizar
+- **Cuerpo de la Request**: Documento `JSON`:
+  - `status`: `"aceptada" | "rechazada"`
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+    - `success`: Si la operación tuvo éxito.
+    - `message`: Mensaje con información adicional
+  - `400`: Error de validación (estado inválido o conflicto de horario)
+  - `401`: Operación no autorizada. Vea el mensaje del error.
+  - `403`: No tiene permisos para modificar esta invitación.
+  - `404`: Invitación no encontrada.

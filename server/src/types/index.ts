@@ -61,6 +61,7 @@ export interface Material {
 // ==================
 
 export enum ReservaStatus {
+  RESERVADA = 'Reservada',
   ACTIVA = 'Activa',
   COMPLETADA = 'Completada',
   CANCELADA = 'Cancelada'
