@@ -113,7 +113,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
 
         const [conflicts] = await connection.query(
             `SELECT id FROM Reserva
-                WHERE sala_ubicacion = ? AND sala_numero = ? AND status = ?
+                WHERE sala_ubicacion = ? AND sala_numero = ? AND (status = ? OR status = ?)
                 AND NOT (
                     datetime(fechaFin || 'T' || horaFin) <= datetime(? || 'T' || ?) OR
                     datetime(fechaInicio || 'T' || horaInicio) >= datetime(? || 'T' || ?)
@@ -121,6 +121,7 @@ export async function crearReservaConTransaccion(data: CrearReservaRequest & { e
             [
                 data.salaUbicacion,
                 data.salaNumero,
+                ReservaStatus.RESERVADA,
                 ReservaStatus.ACTIVA,
                 data.fechaInicio,
                 data.horaInicio,
