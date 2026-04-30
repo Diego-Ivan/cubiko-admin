@@ -6,8 +6,8 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/rooms';
 import reservasRoutes from './routes/reservas';
-import morganMiddleware from './middleware/morgan';
 import estudiantesRoutes from './routes/estudiantes';
+import morganMiddleware from './middleware/morgan';
 
 const app: Express = express();
 
@@ -28,12 +28,8 @@ app.get('/health', (_req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
-app.use('/api/reservas', reservasRoutes)
-<<<<<<< Updated upstream
-=======
-app.use('/api/invitations', invitationsRoutes)
+app.use('/api/reservas', reservasRoutes);
 app.use('/api/estudiantes', estudiantesRoutes);
->>>>>>> Stashed changes
 
 // 404 handler
 app.use((_req, res) => {
