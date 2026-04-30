@@ -224,3 +224,21 @@ Estos endpoints **solamente permiten gestión de reservaciones como estudiantes*
   - `401`: Operación no autorizada. Vea el mensaje del error.
   - `403`: No tiene permisos para modificar esta invitación.
   - `404`: Invitación no encontrada.
+
+## Estudiantes
+
+### Buscar Estudiantes
+
+- **Endpoint**: `/api/estudiantes/searchEstudiantes`
+- **Tipo de Request**: `GET`
+- **Parámetros**:
+  - `q` (requerido): `string` — Término de búsqueda para filtrar estudiantes por nombre o email
+- **Cuerpo de la Request**: Ninguno
+- **Cabeceras**:
+  - `Authorization`: `Bearer: {token_jwt}`
+- **Respuesta**: Documento `JSON`:
+  - `200`: La solicitud se completó satisfactoriamente:
+    - `success`: Si la operación tuvo éxito.
+    - `data`: Arreglo de estudiantes que coinciden con el término de búsqueda.
+  - `400`: Error de validación. El parámetro `q` es requerido y debe ser una cadena no vacía.
+  - `401`: Operación no autorizada. Vea el mensaje del error.

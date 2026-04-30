@@ -6,6 +6,6 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/search', searchEstudiantes); /*Define la ruta GET /search que ejecuta el controlador de búsqueda*/
+router.get('/searchEstudiantes', searchEstudiantes); /*Define la ruta GET /search que ejecuta el controlador de búsqueda*/
 
 export default router;
