@@ -33,8 +33,14 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+  fetchData();
+
+  const interval = setInterval(() => {
     fetchData();
-  }, []);
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, []);
 
   const handleLogout = () => {
     logout();
@@ -124,7 +130,16 @@ export default function Dashboard() {
             <ul className="divide-y divide-gray-200">
               
               {activeTab === 'active' && activeReservations.map((res) => (
-                <li key={res.id} className="p-4 hover:bg-gray-50">
+                <li
+  key={res.id}
+  className={`p-4 hover:bg-gray-50 border-l-4 ${
+    isSurpassedTime(res)
+      ? 'border-red-500 bg-red-50'
+      : isNotActivatedButPassed(res)
+      ? 'border-yellow-500 bg-yellow-50'
+      : 'border-green-500 bg-green-50'
+  }`}
+>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="flex flex-col">

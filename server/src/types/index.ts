@@ -145,6 +145,9 @@ export interface CrearQrRequest {
   reservaId: number;
 }
 
+export interface ResolverExtensionRequest {
+  status: 'Aprobada' | 'Rechazada';
+}
 
 // Respuesta de la API
 

@@ -63,6 +63,10 @@ export const crearQrSchema = z.object({
   reservaId: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Reserva ID must be a positive number')
 });
 
+export const resolverExtensionSchema = z.object({
+  status: z.enum(['Aprobada', 'Rechazada'], { errorMap: () => ({ message: 'Status must be Aprobada or Rechazada' }) })
+});
+
 // Request
 export async function validateRequest<T>(schema: z.ZodSchema, data: unknown): Promise<T> {
   try {

@@ -1,73 +1,33 @@
 import pool from '../config/database';
-import { NotFoundError, ForbiddenError, ValidationError, ReservaStatus } from '../types';
+import { NotFoundError, ForbiddenError } from '../types'; /*importa errores*/
 
-export async function actualizarEstadoInvitacion(
-  invitationId: number,
-  userId: number,
-  status: 'aceptada' | 'rechazada'
-) {
+export async function actualizarEstadoInvitacion(invitationId: number, userId: number, status: string) { 
+    /*Recibe invitationId, userId y nuevo status ("aceptada" o "rechazada")*/
   const connection = await pool.getConnection();
 
   try {
-    await connection.beginTransaction();
-
-    // 1. Obtener invitación
-    const [rows] = await connection.query(
-      'SELECT * FROM Invitacion WHERE id = ?',
+    // Verificar que la invitación existe y pertenece al usuario
+    const [invitations] = await connection.query(
+      'SELECT id, user_id FROM Invitacion WHERE id = ?',
       [invitationId]
     );
 
-    const invitaciones = rows as any[];
-
-    if (invitaciones.length === 0) {
+    if ((invitations as any[]).length === 0) { /*si no encuentra la invitación, lanza un error*/
       throw new NotFoundError('Invitación no encontrada');
     }
 
-    const invitacion = invitaciones[0];
+    const invitation = (invitations as any[])[0]; /*toma el primer valor del array*/
 
-    // 2. Validar que es del usuario
-    if (invitacion.estudiante_id !== userId) {
-      throw new ForbiddenError('No puedes modificar esta invitación');
+    if (invitation.user_id !== userId) { /*verifica que el usario logueado sea el propietario de la invitación, si no lo es, lanza un error*/
+      throw new ForbiddenError('No tienes permiso para actualizar esta invitación');
     }
 
-    // 3. Si acepta → validar conflictos
-    if (status === 'aceptada') {
-      const [conflicts] = await connection.query(
-        `SELECT * FROM Reserva
-         WHERE estudiante_id = ?
-         AND status = ?
-         AND NOT (
-            TIMESTAMP(fechaFin, horaFin) <= TIMESTAMP(?, ?) OR
-            TIMESTAMP(fechaInicio, horaInicio) >= TIMESTAMP(?, ?)
-         )`,
-        [
-          userId,
-          ReservaStatus.ACTIVA,
-          invitacion.fechaInicio,
-          invitacion.horaInicio,
-          invitacion.fechaFin,
-          invitacion.horaFin
-        ]
-      );
-
-      const conflictos = conflicts as any[];
-
-      if (conflictos.length > 0) {
-        throw new ValidationError('Ya tienes una reserva en ese horario');
-      }
-    }
-
-    // 4. Actualizar estado
+    // Actualizar el estado: aceptado o rechazado 
     await connection.query(
       'UPDATE Invitacion SET status = ? WHERE id = ?',
       [status, invitationId]
     );
 
-    await connection.commit();
-
-  } catch (error) {
-    await connection.rollback();
-    throw error;
   } finally {
     connection.release();
   }
